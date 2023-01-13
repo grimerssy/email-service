@@ -5,7 +5,7 @@ use zero2prod::Config;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    let config = Config::try_init().expect("Failed to initialize config.");
+    let config = Config::init().expect("Failed to initialize config.");
     let listener = TcpListener::bind(format!("127.0.0.1:{}", config.application_port))
         .expect("Failed to bind address");
     let db_pool = PgPool::connect(&config.database.url())

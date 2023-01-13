@@ -19,7 +19,7 @@ impl Server {
     async fn spawn() -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port.");
         let port = listener.local_addr().unwrap().port();
-        let config = Config::try_init().expect("Failed to initialize config.");
+        let config = Config::init().expect("Failed to initialize config.");
         let db_name = Uuid::new_v4().to_string();
         let db_pool = Self::create_database(&config.database, db_name.clone()).await;
         let server = zero2prod::run(listener, db_pool.clone()).expect("Failed to bind address.");
@@ -58,12 +58,12 @@ impl Drop for Server {
     fn drop(&mut self) {
         let (tx, rx) = std::sync::mpsc::channel();
         let db_name = self.db_name.clone();
-        let db_url = self.config.database.url();
+        let config = self.config.clone();
 
         std::thread::spawn(move || {
             let rt = Runtime::new().unwrap();
             rt.block_on(async {
-                let mut conn = PgConnection::connect(&db_url)
+                let mut conn = PgConnection::connect(&config.database.url())
                     .await
                     .expect("Failed to connect to Postgres");
 

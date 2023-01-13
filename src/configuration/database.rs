@@ -2,12 +2,13 @@ use std::str::FromStr;
 
 use serde::{de, Deserialize, Deserializer};
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct DatabaseConfig {
     #[serde(rename = "url")] // reads from DATABASE_URL env var
     opts: DbConnectionOptions,
 }
 
+#[derive(Clone)]
 struct DbConnectionOptions {
     host: String,
     port: u16,
