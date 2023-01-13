@@ -11,6 +11,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  DATABASE_URL: postgres://postgres:password@127.0.0.1:5432/postgres
 
 jobs:
   test:
@@ -28,7 +29,6 @@ jobs:
     env:
       SQLX_VERSION: 0.6.2
       SQLX_FEATURES: "rustls,postgres"
-      DATABASE_URL: postgres://postgres:password@127.0.0.1:5432/postgres
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -110,7 +110,6 @@ jobs:
     env:
       SQLX_VERSION: 0.6.2
       SQLX_FEATURES: "rustls,postgres"
-      DATABASE_URL: postgres://postgres:password@127.0.0.1:5432/postgres
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -167,7 +166,6 @@ jobs:
     env:
       SQLX_VERSION: 0.6.2
       SQLX_FEATURES: "rustls,postgres"
-      DATABASE_URL: postgres://postgres:password@127.0.0.1:5432/postgres
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
