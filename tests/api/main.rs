@@ -3,7 +3,7 @@ mod subscriptions;
 
 use std::net::TcpListener;
 
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use once_cell::sync::Lazy;
 use secrecy::{ExposeSecret, Secret};
 use sqlx::{Connection, Executor, PgConnection, PgPool};

@@ -1,6 +1,6 @@
 use std::net::TcpListener;
 
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use zero2prod::{telemetry, Config};
