@@ -16,12 +16,12 @@ pub struct FormData {
 pub async fn subscribe(form: Form<FormData>, pool: Data<PgPool>) -> impl Responder {
     match sqlx::query!(
         r#"
-        insert into subscriptions (id, email, name, subscribed_at)
+        insert into subscriptions (id, name, email, subscribed_at)
         values ($1, $2, $3, $4);
     "#,
         Uuid::new_v4(),
-        form.email,
         form.name,
+        form.email,
         Utc::now(),
     )
     .execute(pool.get_ref())
