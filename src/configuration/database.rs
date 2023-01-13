@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use secrecy::{ExposeSecret, Secret};
 use serde::{de, Deserialize, Deserializer};
 
 #[derive(Clone, Deserialize)]
@@ -13,20 +14,27 @@ struct DbConnectionOptions {
     host: String,
     port: u16,
     username: String,
-    password: String,
+    password: Secret<String>,
     name: String,
 }
 
 impl DatabaseConfig {
-    pub fn url_no_db(&self) -> String {
-        format!(
+    pub fn url_no_db(&self) -> Secret<String> {
+        Secret::new(format!(
             "postgres://{}:{}@{}:{}",
-            self.opts.username, self.opts.password, self.opts.host, self.opts.port
-        )
+            self.opts.username,
+            self.opts.password.expose_secret(),
+            self.opts.host,
+            self.opts.port
+        ))
     }
 
-    pub fn url(&self) -> String {
-        format!("{}/{}", self.url_no_db(), self.opts.name)
+    pub fn url(&self) -> Secret<String> {
+        Secret::new(format!(
+            "{}/{}",
+            self.url_no_db().expose_secret(),
+            self.opts.name
+        ))
     }
 }
 
@@ -41,7 +49,7 @@ impl FromStr for DbConnectionOptions {
             .ok_or("Database URL did not match the expected format.")?;
         Ok(DbConnectionOptions {
             username: captures.get(1).unwrap().as_str().into(),
-            password: captures.get(2).unwrap().as_str().into(),
+            password: Secret::new(captures.get(2).unwrap().as_str().into()),
             host: captures.get(3).unwrap().as_str().into(),
             port: captures
                 .get(4)

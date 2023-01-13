@@ -4,10 +4,27 @@ mod subscriptions;
 use std::net::TcpListener;
 
 use dotenv::dotenv;
+use once_cell::sync::Lazy;
+use secrecy::{ExposeSecret, Secret};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tokio::runtime::Runtime;
 use uuid::Uuid;
-use zero2prod::configuration::{Config, DatabaseConfig};
+use zero2prod::{
+    configuration::{Config, DatabaseConfig},
+    telemetry,
+};
+
+static TELEMETRY: Lazy<Result<(), String>> = Lazy::new(|| {
+    if std::env::var("TEST_LOG")
+        .unwrap_or_default()
+        .parse::<bool>()
+        .unwrap_or_default()
+    {
+        telemetry::init("test", "debug", std::io::stdout)
+    } else {
+        telemetry::init("test", "debug", std::io::sink)
+    }
+});
 
 struct Server {
     config: Config,
@@ -19,13 +36,21 @@ struct Server {
 impl Server {
     async fn spawn() -> Self {
         dotenv().ok();
+        Lazy::force(&TELEMETRY)
+            .as_ref()
+            .expect("Failed to initialize telemetry.");
+
+        let config = Config::init().expect("Failed to initialize config.");
+
         let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port.");
         let port = listener.local_addr().unwrap().port();
-        let config = Config::init().expect("Failed to initialize config.");
+
         let db_name = Uuid::new_v4().to_string();
         let db_pool = Self::create_database(&config.database, db_name.clone()).await;
+
         let server = zero2prod::run(listener, db_pool.clone()).expect("Failed to bind address.");
         let _ = tokio::spawn(server);
+
         Self {
             config,
             address: format!("http://127.0.0.1:{}", port),
@@ -35,15 +60,19 @@ impl Server {
     }
 
     async fn create_database(config: &DatabaseConfig, db_name: String) -> PgPool {
-        PgConnection::connect(&config.url())
+        PgConnection::connect(config.url().expose_secret())
             .await
             .expect("Failed to connect to the database.")
             .execute(format!(r#"create database "{}";"#, db_name).as_str())
             .await
             .expect("Failed to create database.");
 
-        let db_url = format!("{}/{}", config.url_no_db(), db_name);
-        let pool = PgPool::connect(&db_url)
+        let db_url = Secret::new(format!(
+            "{}/{}",
+            config.url_no_db().expose_secret(),
+            db_name
+        ));
+        let pool = PgPool::connect(db_url.expose_secret())
             .await
             .expect("Failed to connect to the database.");
 
@@ -65,7 +94,7 @@ impl Drop for Server {
         std::thread::spawn(move || {
             let rt = Runtime::new().unwrap();
             rt.block_on(async {
-                let mut conn = PgConnection::connect(&config.database.url())
+                let mut conn = PgConnection::connect(config.database.url().expose_secret())
                     .await
                     .expect("Failed to connect to Postgres");
 
