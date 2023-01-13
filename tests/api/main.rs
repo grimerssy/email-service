@@ -3,6 +3,7 @@ mod subscriptions;
 
 use std::net::TcpListener;
 
+use dotenv::dotenv;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use tokio::runtime::Runtime;
 use uuid::Uuid;
@@ -17,6 +18,7 @@ struct Server {
 
 impl Server {
     async fn spawn() -> Self {
+        dotenv().ok();
         let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port.");
         let port = listener.local_addr().unwrap().port();
         let config = Config::init().expect("Failed to initialize config.");

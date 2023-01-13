@@ -1,10 +1,12 @@
 use std::net::TcpListener;
 
+use dotenv::dotenv;
 use sqlx::PgPool;
 use zero2prod::Config;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
     let config = Config::init().expect("Failed to initialize config.");
     let listener = TcpListener::bind(format!("127.0.0.1:{}", config.application_port))
         .expect("Failed to bind address");

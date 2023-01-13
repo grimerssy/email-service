@@ -1,7 +1,6 @@
 mod database;
 
 pub use database::DatabaseConfig;
-use dotenv::dotenv;
 use serde::Deserialize;
 
 #[derive(Clone, Deserialize)]
@@ -12,7 +11,6 @@ pub struct Config {
 
 impl Config {
     pub fn init() -> Result<Self, config::ConfigError> {
-        dotenv().ok();
         config::Config::builder()
             .add_source(config::Environment::default().separator("_"))
             .add_source(config::File::with_name("config"))
