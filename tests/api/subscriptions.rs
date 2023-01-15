@@ -2,9 +2,9 @@ use crate::Server;
 
 #[tokio::test]
 async fn subscribe_returns_200_for_valid_data() {
-    let server = Server::spawn().await;
+    let server = Server::init().await;
 
-    let url = format!("{}/subscriptions", server.address);
+    let url = format!("{}/subscriptions", server.config.application.addr());
     let body = "name=John%20Doe&email=example%40gmail.com";
     let response = reqwest::Client::new()
         .post(url)
@@ -27,9 +27,9 @@ async fn subscribe_returns_200_for_valid_data() {
 
 #[tokio::test]
 async fn subscribe_returns_400_when_data_is_missing() {
-    let server = Server::spawn().await;
+    let server = Server::init().await;
 
-    let url = format!("{}/subscriptions", server.address);
+    let url = format!("{}/subscriptions", server.config.application.addr());
     let client = reqwest::Client::new();
 
     let test_cases = vec![

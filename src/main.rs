@@ -1,7 +1,6 @@
 use std::net::TcpListener;
 
 use dotenvy::dotenv;
-use secrecy::ExposeSecret;
 use sqlx::PgPool;
 use zero2prod::{telemetry, Config};
 
@@ -16,8 +15,7 @@ async fn main() -> std::io::Result<()> {
         config.application.host, config.application.port
     ))
     .expect("Failed to bind address");
-    let db_pool = PgPool::connect_lazy(config.database.url().expose_secret())
-        .expect("Failed to connect to the database");
+    let db_pool = PgPool::connect_lazy_with(config.database.with_db());
 
     zero2prod::run(listener, db_pool)?.await
 }

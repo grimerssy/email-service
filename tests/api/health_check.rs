@@ -2,9 +2,9 @@ use crate::Server;
 
 #[tokio::test]
 async fn it_works() {
-    let server = Server::spawn().await;
+    let server = Server::init().await;
 
-    let url = format!("{}/health_check", server.address);
+    let url = format!("{}/health_check", server.config.application.addr());
     let response = reqwest::Client::new()
         .get(url)
         .send()

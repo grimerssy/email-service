@@ -2,43 +2,42 @@ use std::str::FromStr;
 
 use secrecy::{ExposeSecret, Secret};
 use serde::{de, Deserialize, Deserializer};
+use sqlx::postgres::PgConnectOptions;
 
 #[derive(Clone, Deserialize)]
 pub struct DatabaseConfig {
     #[serde(rename = "url")] // reads from DATABASE_URL env var
-    opts: DbConnectionOptions,
+    pub options: ConnectOptions,
 }
 
 #[derive(Clone)]
-struct DbConnectionOptions {
-    host: String,
-    port: u16,
-    username: String,
-    password: Secret<String>,
-    name: String,
+pub struct ConnectOptions {
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub password: Secret<String>,
+    pub database: String,
 }
 
 impl DatabaseConfig {
-    pub fn url_no_db(&self) -> Secret<String> {
-        Secret::new(format!(
-            "postgres://{}:{}@{}:{}",
-            self.opts.username,
-            self.opts.password.expose_secret(),
-            self.opts.host,
-            self.opts.port
-        ))
+    fn without_db(&self) -> PgConnectOptions {
+        PgConnectOptions::new()
+            .host(&self.options.host)
+            .port(self.options.port)
+            .username(&self.options.username)
+            .password(self.options.password.expose_secret())
     }
 
-    pub fn url(&self) -> Secret<String> {
-        Secret::new(format!(
-            "{}/{}",
-            self.url_no_db().expose_secret(),
-            self.opts.name
-        ))
+    pub fn with_db(&self) -> PgConnectOptions {
+        self.without_db().database(&self.options.database)
+    }
+
+    pub fn with_default_db(&self) -> PgConnectOptions {
+        self.without_db().database("postgres")
     }
 }
 
-impl FromStr for DbConnectionOptions {
+impl FromStr for ConnectOptions {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -47,7 +46,7 @@ impl FromStr for DbConnectionOptions {
         let captures = rg
             .captures(s)
             .ok_or("Database URL did not match the expected format")?;
-        Ok(DbConnectionOptions {
+        Ok(ConnectOptions {
             username: captures.get(1).unwrap().as_str().into(),
             password: Secret::new(captures.get(2).unwrap().as_str().into()),
             host: captures.get(3).unwrap().as_str().into(),
@@ -57,12 +56,12 @@ impl FromStr for DbConnectionOptions {
                 .as_str()
                 .parse()
                 .map_err(|_| "Failed to parse port number")?,
-            name: captures.get(5).unwrap().as_str().into(),
+            database: captures.get(5).unwrap().as_str().into(),
         })
     }
 }
 
-impl<'de> Deserialize<'de> for DbConnectionOptions {
+impl<'de> Deserialize<'de> for ConnectOptions {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
