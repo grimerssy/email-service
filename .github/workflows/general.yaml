@@ -96,7 +96,6 @@ jobs:
           args: --all -- --check
 
   clippy:
-    permissions: write-all
     name: Clippy
     runs-on: ubuntu-latest
     services:
@@ -147,10 +146,7 @@ jobs:
           sudo apt-get install libpq-dev -y
           sqlx migrate run
       - name: Run clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: -- -D warnings
+        run: cargo clippy -- -D warnings
 
   coverage:
     name: Code coverage
