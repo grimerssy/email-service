@@ -13,8 +13,7 @@ async fn main() -> std::io::Result<()> {
     let config = Config::init().expect("Failed to initialize config.");
     let listener = TcpListener::bind(format!("127.0.0.1:{}", config.application_port))
         .expect("Failed to bind address");
-    let db_pool = PgPool::connect(config.database.url().expose_secret())
-        .await
+    let db_pool = PgPool::connect_lazy(config.database.url().expose_secret())
         .expect("Failed to connect to the database.");
 
     zero2prod::run(listener, db_pool)?.await
