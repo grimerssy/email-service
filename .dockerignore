@@ -1,1 +1,6 @@
+.dockerignore
+Dockerfile
+migrations/
+scripts/
 target/
+tests/
