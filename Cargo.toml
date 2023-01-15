@@ -3,13 +3,6 @@ name = "zero2prod"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-path = "src/lib.rs"
-
-[[bin]]
-path = "src/bin/main.rs"
-name = "zero2prod"
-
 [dependencies]
 actix-web = "4.2.1"
 serde = { version = "1.0.152", features = ["derive"] }
