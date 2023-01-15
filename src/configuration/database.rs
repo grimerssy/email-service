@@ -46,7 +46,7 @@ impl FromStr for DbConnectionOptions {
         let rg = Regex::new(r"postgres://(.+):(.+)@(.+):(.+)/(.+)").unwrap();
         let captures = rg
             .captures(s)
-            .ok_or("Database URL did not match the expected format.")?;
+            .ok_or("Database URL did not match the expected format")?;
         Ok(DbConnectionOptions {
             username: captures.get(1).unwrap().as_str().into(),
             password: Secret::new(captures.get(2).unwrap().as_str().into()),
@@ -56,7 +56,7 @@ impl FromStr for DbConnectionOptions {
                 .unwrap()
                 .as_str()
                 .parse()
-                .map_err(|_| "Invalid port value.")?,
+                .map_err(|_| "Failed to parse port number")?,
             name: captures.get(5).unwrap().as_str().into(),
         })
     }

@@ -38,17 +38,17 @@ impl Server {
         dotenv().ok();
         Lazy::force(&TELEMETRY)
             .as_ref()
-            .expect("Failed to initialize telemetry.");
+            .expect("Failed to initialize telemetry");
 
-        let config = Config::init().expect("Failed to initialize config.");
+        let config = Config::init().expect("Failed to initialize config");
 
-        let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port.");
+        let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
         let port = listener.local_addr().unwrap().port();
 
         let db_name = Uuid::new_v4().to_string();
         let db_pool = Self::create_database(&config.database, db_name.clone()).await;
 
-        let server = zero2prod::run(listener, db_pool.clone()).expect("Failed to bind address.");
+        let server = zero2prod::run(listener, db_pool.clone()).expect("Failed to bind address");
         let _ = tokio::spawn(server);
 
         Self {
@@ -62,10 +62,10 @@ impl Server {
     async fn create_database(config: &DatabaseConfig, db_name: String) -> PgPool {
         PgConnection::connect(config.url().expose_secret())
             .await
-            .expect("Failed to connect to the database.")
+            .expect("Failed to connect to the database")
             .execute(format!(r#"create database "{}";"#, db_name).as_str())
             .await
-            .expect("Failed to create database.");
+            .expect("Failed to create database");
 
         let db_url = Secret::new(format!(
             "{}/{}",
@@ -74,12 +74,12 @@ impl Server {
         ));
         let pool = PgPool::connect(db_url.expose_secret())
             .await
-            .expect("Failed to connect to the database.");
+            .expect("Failed to connect to the database");
 
         sqlx::migrate!("./migrations")
             .run(&pool)
             .await
-            .expect("Failed to run migrations on the database.");
+            .expect("Failed to run migrations on the database");
 
         pool
     }
