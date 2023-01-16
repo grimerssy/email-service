@@ -24,7 +24,6 @@ impl AsRef<str> for SubscriberEmail {
 #[cfg(test)]
 mod tests {
     use super::SubscriberEmail;
-    use claim::assert_err;
     use fake::{faker::internet::en::SafeEmail, Fake};
 
     #[derive(Debug, Clone)]
@@ -45,18 +44,18 @@ mod tests {
     #[test]
     fn empty_string_is_rejected() {
         let email = "".to_string();
-        assert_err!(SubscriberEmail::try_from(email));
+        assert!(SubscriberEmail::try_from(email).is_err());
     }
 
     #[test]
     fn email_missing_at_symbol_is_rejected() {
         let email = "exampledomain.com".to_string();
-        assert_err!(SubscriberEmail::try_from(email));
+        assert!(SubscriberEmail::try_from(email).is_err());
     }
 
     #[test]
     fn email_missing_subject_is_rejected() {
         let email = "@domain.com".to_string();
-        assert_err!(SubscriberEmail::try_from(email));
+        assert!(SubscriberEmail::try_from(email).is_err());
     }
 }
