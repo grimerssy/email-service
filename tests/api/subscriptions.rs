@@ -53,3 +53,35 @@ async fn subscribe_returns_400_when_data_is_missing() {
         );
     }
 }
+
+#[tokio::test]
+async fn subscribe_returns_400_when_data_is_invalid() {
+    let server = Server::init().await;
+
+    let url = format!("{}/subscriptions", server.config.application.addr());
+    let client = reqwest::Client::new();
+
+    let test_cases = vec![
+        ("name=&email=example%40gmail.com", "has empty name"),
+        ("name=John%20Doe&email=", "has empty email"),
+        (
+            "name=John%20Doe&email=definitely-not-an-email",
+            "has invalid email",
+        ),
+    ];
+    for (invalid_body, reason) in test_cases {
+        let response = client
+            .post(url.clone())
+            .header("Content-type", "application/x-www-form-urlencoded")
+            .body(invalid_body)
+            .send()
+            .await
+            .expect("Failed to execute request");
+
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "Server does not return 400 when form {reason}",
+        );
+    }
+}

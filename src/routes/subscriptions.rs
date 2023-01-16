@@ -8,10 +8,22 @@ use sqlx::PgPool;
 use tracing::error;
 use uuid::Uuid;
 
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+
 #[derive(Deserialize)]
 pub struct FormData {
     name: String,
     email: String,
+}
+
+impl TryInto<NewSubscriber> for FormData {
+    type Error = String;
+
+    fn try_into(self) -> Result<NewSubscriber, Self::Error> {
+        let name = SubscriberName::try_from(self.name)?;
+        let email = SubscriberEmail::try_from(self.email)?;
+        Ok(NewSubscriber { name, email })
+    }
 }
 
 #[tracing::instrument(
@@ -22,8 +34,12 @@ pub struct FormData {
         subscriber_email = %form.email,
     )
 )]
-pub async fn subscribe(form: Form<FormData>, pool: Data<PgPool>) -> HttpResponse {
-    insert_subscriber(&form, &pool)
+pub async fn subscribe(Form(form): Form<FormData>, pool: Data<PgPool>) -> HttpResponse {
+    let subscriber = match form.try_into() {
+        Ok(subscriber) => subscriber,
+        Err(_) => return HttpResponse::BadRequest().finish(),
+    };
+    insert_subscriber(&subscriber, &pool)
         .await
         .map(|_| HttpResponse::Ok().finish())
         .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
@@ -31,17 +47,17 @@ pub async fn subscribe(form: Form<FormData>, pool: Data<PgPool>) -> HttpResponse
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
-    skip(form, pool)
+    skip(subscriber, pool)
 )]
-async fn insert_subscriber(form: &FormData, pool: &PgPool) -> sqlx::Result<()> {
+async fn insert_subscriber(subscriber: &NewSubscriber, pool: &PgPool) -> sqlx::Result<()> {
     sqlx::query!(
         r#"
         insert into subscriptions (id, name, email, subscribed_at)
         values ($1, $2, $3, $4);
     "#,
         Uuid::new_v4(),
-        form.name,
-        form.email,
+        subscriber.name.as_ref(),
+        subscriber.email.as_ref(),
         Utc::now(),
     )
     .execute(pool)
