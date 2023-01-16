@@ -26,7 +26,7 @@ docker run \
   >/dev/null
 
 sleep 1
-until psql $DATABASE_URL -c '\q'; do
+until psql $DATABASE_URL >/dev/null -c '\q'; do
   echo "Failed to connect to the database. Retrying..." >&2
   sleep 1
 done
