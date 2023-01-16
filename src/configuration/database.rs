@@ -2,12 +2,13 @@ use std::str::FromStr;
 
 use secrecy::{ExposeSecret, Secret};
 use serde::{de, Deserialize, Deserializer};
-use sqlx::postgres::PgConnectOptions;
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
 #[derive(Clone, Deserialize)]
 pub struct DatabaseConfig {
     #[serde(rename = "url")] // reads from DATABASE_URL env var
     pub options: ConnectOptions,
+    pub require_ssl: bool,
 }
 
 #[derive(Clone)]
@@ -21,11 +22,17 @@ pub struct ConnectOptions {
 
 impl DatabaseConfig {
     fn without_db(&self) -> PgConnectOptions {
+        let ssl_mode = if self.require_ssl {
+            PgSslMode::Require
+        } else {
+            PgSslMode::Prefer
+        };
         PgConnectOptions::new()
             .host(&self.options.host)
             .port(self.options.port)
             .username(&self.options.username)
             .password(self.options.password.expose_secret())
+            .ssl_mode(ssl_mode)
     }
 
     pub fn with_db(&self) -> PgConnectOptions {
