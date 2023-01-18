@@ -4,14 +4,14 @@ use secrecy::{ExposeSecret, Secret};
 use serde::{de, Deserialize, Deserializer};
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct DatabaseConfig {
     #[serde(rename = "url")] // reads from DATABASE_URL env var
     pub options: ConnectOptions,
     pub require_ssl: bool,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ConnectOptions {
     pub host: String,
     pub port: u16,

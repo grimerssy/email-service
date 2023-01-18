@@ -26,6 +26,7 @@ static TELEMETRY: Lazy<Result<(), String>> = Lazy::new(|| {
     }
 });
 
+#[derive(Debug)]
 struct Server {
     config: Config,
     db_pool: PgPool,

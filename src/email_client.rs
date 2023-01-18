@@ -4,7 +4,7 @@ use serde::Serialize;
 
 use crate::domain::SubscriberEmail;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EmailClient {
     http_client: reqwest::Client,
     base_url: Url,

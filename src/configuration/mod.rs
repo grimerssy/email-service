@@ -10,7 +10,7 @@ use environment::Environment;
 
 use serde::Deserialize;
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Config {
     pub database: DatabaseConfig,
     pub email_client: EmailClientSettings,
