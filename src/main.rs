@@ -2,7 +2,7 @@ use std::net::TcpListener;
 
 use dotenvy::dotenv;
 use sqlx::PgPool;
-use zero2prod::{telemetry, Config};
+use zero2prod::{telemetry, Config, EmailClient};
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
@@ -16,6 +16,11 @@ async fn main() -> std::io::Result<()> {
     ))
     .expect("Failed to bind address");
     let db_pool = PgPool::connect_lazy_with(config.database.with_db());
+    let email_client = EmailClient::new(
+        config.email_client.base_url.into(),
+        config.email_client.sender,
+        config.email_client.authorization_token,
+    );
 
-    zero2prod::run(listener, db_pool)?.await
+    zero2prod::run(listener, db_pool, email_client)?.await
 }

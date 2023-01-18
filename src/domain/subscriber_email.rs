@@ -1,6 +1,7 @@
+use serde::{de, Deserialize};
 use validator::validate_email;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SubscriberEmail(String);
 
 impl TryFrom<String> for SubscriberEmail {
@@ -21,12 +22,21 @@ impl AsRef<str> for SubscriberEmail {
     }
 }
 
+impl<'de> Deserialize<'de> for SubscriberEmail {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Self::try_from(String::deserialize(deserializer)?).map_err(de::Error::custom)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::SubscriberEmail;
     use fake::{faker::internet::en::SafeEmail, Fake};
 
-    #[derive(Debug, Clone)]
+    #[derive(Clone, Debug)]
     struct ValidEmailFixture(pub String);
 
     impl quickcheck::Arbitrary for ValidEmailFixture {

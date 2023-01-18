@@ -1,2 +1,7 @@
 application:
   port: 8080
+
+email_client:
+  base_url: http://localhost
+  sender: test@gmail.com
+  authorization_token: secret-token

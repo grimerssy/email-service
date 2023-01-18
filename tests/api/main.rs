@@ -10,7 +10,7 @@ use tokio::runtime::Runtime;
 use uuid::Uuid;
 use zero2prod::{
     configuration::{Config, DatabaseConfig},
-    telemetry,
+    telemetry, EmailClient,
 };
 
 static TELEMETRY: Lazy<Result<(), String>> = Lazy::new(|| {
@@ -47,8 +47,14 @@ impl Server {
         config.database.options.database = database;
 
         let db_pool = Self::create_database(&config.database).await;
+        let email_client = EmailClient::new(
+            config.email_client.base_url.clone().into(),
+            config.email_client.sender.clone(),
+            config.email_client.authorization_token.clone(),
+        );
 
-        let server = zero2prod::run(listener, db_pool.clone()).expect("Failed to bind address");
+        let server = zero2prod::run(listener, db_pool.clone(), email_client)
+            .expect("Failed to bind address");
         let _ = tokio::spawn(server);
 
         Self { config, db_pool }
