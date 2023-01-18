@@ -5,3 +5,6 @@ email_client:
   base_url: http://localhost
   sender: test@gmail.com
   authorization_token: secret-token
+  timeout:
+    secs: 1
+    nanos: 0

@@ -1,7 +1,7 @@
 mod health_check;
 mod subscriptions;
 
-use std::net::TcpListener;
+use std::{net::TcpListener, time::Duration};
 
 use dotenvy::dotenv;
 use once_cell::sync::Lazy;
@@ -49,7 +49,8 @@ impl Server {
 
         let db_pool = Self::create_database(&config.database).await;
         let email_client = EmailClient::new(
-            config.email_client.base_url.clone().into(),
+            Duration::from_millis(200),
+            config.email_client.base_url.clone(),
             config.email_client.sender.clone(),
             config.email_client.authorization_token.clone(),
         );
