@@ -25,8 +25,8 @@ impl<'de> Deserialize<'de> for UrlWrapper {
     }
 }
 
-impl Into<Url> for UrlWrapper {
-    fn into(self) -> Url {
-        self.0
+impl From<UrlWrapper> for Url {
+    fn from(val: UrlWrapper) -> Self {
+        val.0
     }
 }
