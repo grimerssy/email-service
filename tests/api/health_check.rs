@@ -1,10 +1,10 @@
-use crate::Server;
+use crate::TestServer;
 
 #[tokio::test]
 async fn returns_200() {
-    let server = Server::init().await;
+    let server = TestServer::init().await;
 
-    let url = format!("{}/health_check", server.config.application.addr());
+    let url = format!("{}/health_check", server.addr);
     let response = reqwest::Client::new()
         .get(url)
         .send()
