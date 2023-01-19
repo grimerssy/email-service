@@ -51,8 +51,8 @@ pub async fn subscribe(Form(form): Form<FormData>, pool: Data<PgPool>) -> HttpRe
 async fn insert_subscriber(subscriber: &NewSubscriber, pool: &PgPool) -> sqlx::Result<()> {
     sqlx::query!(
         r#"
-        insert into subscriptions (id, name, email, subscribed_at)
-        values ($1, $2, $3, $4);
+        insert into subscriptions (id, name, email, subscribed_at, status)
+        values ($1, $2, $3, $4, 'confirmed');
     "#,
         Uuid::new_v4(),
         subscriber.name.as_ref(),
