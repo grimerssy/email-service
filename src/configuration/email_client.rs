@@ -9,7 +9,7 @@ use crate::domain::SubscriberEmail;
 
 #[serde_as]
 #[derive(Clone, Debug, Deserialize)]
-pub struct EmailClientSettings {
+pub struct EmailClientConfig {
     pub timeout: Duration,
     #[serde_as(as = "DisplayFromStr")]
     pub base_url: Url,

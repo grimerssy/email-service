@@ -1,4 +1,4 @@
-use std::{net::TcpListener, time::Duration};
+use std::net::TcpListener;
 
 use dotenvy::dotenv;
 use sqlx::PgPool;
@@ -16,12 +16,7 @@ async fn main() -> std::io::Result<()> {
     ))
     .expect("Failed to bind address");
     let db_pool = PgPool::connect_lazy_with(config.database.with_db());
-    let email_client = EmailClient::new(
-        Duration::from_secs(5),
-        config.email_client.base_url,
-        config.email_client.sender,
-        config.email_client.authorization_token,
-    );
+    let email_client = EmailClient::new(config.email_client);
 
     zero2prod::run(listener, db_pool, email_client)?.await
 }

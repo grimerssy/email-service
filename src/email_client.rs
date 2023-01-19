@@ -1,10 +1,8 @@
-use std::time::Duration;
-
 use reqwest::Url;
 use secrecy::{ExposeSecret, Secret};
 use serde::Serialize;
 
-use crate::domain::SubscriberEmail;
+use crate::{configuration::EmailClientConfig as Config, domain::SubscriberEmail};
 
 #[derive(Clone, Debug)]
 pub struct EmailClient {
@@ -15,17 +13,15 @@ pub struct EmailClient {
 }
 
 impl EmailClient {
-    pub fn new(
-        timeout: Duration,
-        base_url: Url,
-        sender: SubscriberEmail,
-        authorization_token: Secret<String>,
-    ) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
-            http_client: reqwest::Client::builder().timeout(timeout).build().unwrap(),
-            base_url,
-            sender,
-            authorization_token,
+            http_client: reqwest::Client::builder()
+                .timeout(config.timeout)
+                .build()
+                .unwrap(),
+            base_url: config.base_url,
+            sender: config.sender,
+            authorization_token: config.authorization_token,
         }
     }
 
@@ -120,14 +116,15 @@ mod tests {
         let email = || SubscriberEmail::try_from(SafeEmail().fake::<String>()).unwrap();
         let subject = Sentence(1..2).fake::<String>();
         let content = Paragraph(1..10).fake::<String>();
-        EmailClient::new(
-            Duration::from_millis(200),
-            Url::parse(&server.uri()).unwrap(),
-            email(),
-            Secret::new(Faker.fake()),
-        )
-        .send_email(&email(), &subject, &content, &content)
-        .await
+        let config = Config {
+            timeout: Duration::from_millis(200),
+            base_url: Url::parse(&server.uri()).unwrap(),
+            sender: email(),
+            authorization_token: Secret::new(Faker.fake()),
+        };
+        EmailClient::new(config)
+            .send_email(&email(), &subject, &content, &content)
+            .await
     }
 
     #[tokio::test]

@@ -48,12 +48,8 @@ impl Server {
         config.database.options.database = database;
 
         let db_pool = Self::create_database(&config.database).await;
-        let email_client = EmailClient::new(
-            Duration::from_millis(200),
-            config.email_client.base_url.clone(),
-            config.email_client.sender.clone(),
-            config.email_client.authorization_token.clone(),
-        );
+        config.email_client.timeout = Duration::from_millis(200);
+        let email_client = EmailClient::new(config.email_client.clone());
 
         let server = zero2prod::run(listener, db_pool.clone(), email_client)
             .expect("Failed to bind address");
