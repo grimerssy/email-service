@@ -1,9 +1,11 @@
 use dotenvy::dotenv;
 use once_cell::sync::Lazy;
+use reqwest::Url;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use uuid::Uuid;
+use wiremock::MockServer;
 use zero2prod::{
     configuration::{Config, DatabaseConfig},
     telemetry, Server,
@@ -22,31 +24,37 @@ pub static TELEMETRY: Lazy<Result<(), String>> = Lazy::new(|| {
     }
 });
 
-#[derive(Debug)]
 pub struct TestServer {
     pub addr: String,
     pub db_pool: PgPool,
+    pub email_server: MockServer,
 }
 
 impl TestServer {
-    pub async fn init() -> Self {
+    pub async fn run() -> Self {
         dotenv().ok();
         Lazy::force(&TELEMETRY)
             .as_ref()
             .expect("Failed to initialize telemetry");
 
+        let email_server = MockServer::start().await;
         let config = {
             let mut c = Config::init().expect("Failed to initialize config");
             c.application.port = 0;
             c.database.options.database = Uuid::new_v4().to_string();
             c.email_client.timeout = Duration::from_millis(200);
+            c.email_client.base_url = Url::parse(&email_server.uri()).unwrap();
             c
         };
-        let db_pool = Self::create_database(&config.database).await;
         let server = Server::build(config.clone()).expect("Failed to run server.");
         let addr = format!("http://{}:{}", config.application.host, server.port());
+        let db_pool = Self::create_database(&config.database).await;
         let _ = tokio::spawn(server.run());
-        Self { addr, db_pool }
+        Self {
+            addr,
+            db_pool,
+            email_server,
+        }
     }
 
     async fn create_database(config: &DatabaseConfig) -> PgPool {

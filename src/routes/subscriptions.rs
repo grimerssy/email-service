@@ -1,4 +1,7 @@
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::{
+    domain::{NewSubscriber, SubscriberEmail, SubscriberName},
+    EmailClient,
+};
 use actix_web::{
     web::{Data, Form},
     HttpResponse,
@@ -27,18 +30,26 @@ impl TryInto<NewSubscriber> for FormData {
 
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(form, pool),
+    skip(form, pool, email_client),
     fields(
         subscriber_name = %form.name,
         subscriber_email = %form.email,
     )
 )]
-pub async fn subscribe(Form(form): Form<FormData>, pool: Data<PgPool>) -> HttpResponse {
+pub async fn subscribe(
+    Form(form): Form<FormData>,
+    pool: Data<PgPool>,
+    email_client: Data<EmailClient>,
+) -> HttpResponse {
     let subscriber = match form.try_into() {
         Ok(subscriber) => subscriber,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
-    insert_subscriber(&subscriber, &pool)
+    if insert_subscriber(&subscriber, &pool).await.is_err() {
+        return HttpResponse::InternalServerError().finish();
+    };
+    email_client
+        .send_email(&subscriber.email, "Subject", "Html body", "Text body")
         .await
         .map(|_| HttpResponse::Ok().finish())
         .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
