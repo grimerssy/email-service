@@ -1,8 +1,7 @@
+use crate::{configuration::EmailClientConfig as Config, domain::SubscriberEmail};
 use reqwest::Url;
 use secrecy::{ExposeSecret, Secret};
 use serde::Serialize;
-
-use crate::{configuration::EmailClientConfig as Config, domain::SubscriberEmail};
 
 #[derive(Clone, Debug)]
 pub struct EmailClient {

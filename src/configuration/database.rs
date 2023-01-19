@@ -1,8 +1,7 @@
-use std::str::FromStr;
-
 use secrecy::{ExposeSecret, Secret};
 use serde::{de, Deserialize, Deserializer};
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use std::str::FromStr;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct DatabaseConfig {

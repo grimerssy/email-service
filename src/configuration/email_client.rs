@@ -1,9 +1,8 @@
-use std::time::Duration;
-
 use reqwest::Url;
 use secrecy::Secret;
 use serde::Deserialize;
 use serde_with::{serde_as, DisplayFromStr};
+use std::time::Duration;
 
 use crate::domain::SubscriberEmail;
 

@@ -3,18 +3,18 @@ mod database;
 mod email_client;
 mod environment;
 
-use application::ApplicationConfig;
 pub use database::DatabaseConfig;
 pub use email_client::EmailClientConfig;
-use environment::Environment;
 
+use application::ApplicationConfig;
+use environment::Environment;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Config {
+    pub application: ApplicationConfig,
     pub database: DatabaseConfig,
     pub email_client: EmailClientConfig,
-    pub application: ApplicationConfig,
 }
 
 impl Config {

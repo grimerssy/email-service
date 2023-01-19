@@ -1,3 +1,4 @@
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use actix_web::{
     web::{Data, Form},
     HttpResponse,
@@ -7,8 +8,6 @@ use serde::Deserialize;
 use sqlx::PgPool;
 use tracing::error;
 use uuid::Uuid;
-
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct FormData {
