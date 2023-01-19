@@ -37,6 +37,7 @@ impl Server {
         email_client: EmailClient,
     ) -> std::io::Result<ActixServer> {
         let db_pool = Data::new(db_pool);
+        let email_client = Data::new(email_client);
         HttpServer::new(move || {
             App::new()
                 .wrap(TracingLogger::default())
