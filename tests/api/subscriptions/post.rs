@@ -1,7 +1,7 @@
 use crate::Server;
 
 #[tokio::test]
-async fn subscribe_returns_200_for_valid_data() {
+async fn returns_200_for_valid_data() {
     let server = Server::init().await;
 
     let url = format!("{}/subscriptions", server.config.application.addr());
@@ -26,7 +26,7 @@ async fn subscribe_returns_200_for_valid_data() {
 }
 
 #[tokio::test]
-async fn subscribe_returns_400_when_data_is_missing() {
+async fn returns_400_when_data_is_missing() {
     let server = Server::init().await;
 
     let url = format!("{}/subscriptions", server.config.application.addr());
@@ -55,7 +55,7 @@ async fn subscribe_returns_400_when_data_is_missing() {
 }
 
 #[tokio::test]
-async fn subscribe_returns_400_when_data_is_invalid() {
+async fn returns_400_when_data_is_invalid() {
     let server = Server::init().await;
 
     let url = format!("{}/subscriptions", server.config.application.addr());

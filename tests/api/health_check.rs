@@ -1,7 +1,7 @@
 use crate::Server;
 
 #[tokio::test]
-async fn it_works() {
+async fn returns_200() {
     let server = Server::init().await;
 
     let url = format!("{}/health_check", server.config.application.addr());
