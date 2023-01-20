@@ -22,7 +22,7 @@ docker run \
   -e POSTGRES_DB="$DB_NAME" \
   -p "$DB_PORT:5432" \
   postgres \
-  -N 100 \
+  -N 1000 \
   >/dev/null
 
 sleep 1
