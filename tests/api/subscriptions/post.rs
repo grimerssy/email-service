@@ -1,13 +1,14 @@
+use crate::TestServer;
+use sqlx::Pool;
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
 };
+use zero2prod::Database;
 
-use crate::TestServer;
-
-#[tokio::test]
-async fn sends_an_email_for_valid_data() {
-    let server = TestServer::run().await;
+#[sqlx::test]
+async fn sends_an_email_for_valid_data(pool: Pool<Database>) {
+    let server = TestServer::run(pool).await;
     let body = "name=John%20Doe&email=example%40gmail.com";
 
     Mock::given(path("/email"))
@@ -20,9 +21,9 @@ async fn sends_an_email_for_valid_data() {
     server.post_supscriptions(body.into()).await;
 }
 
-#[tokio::test]
-async fn returns_200_for_valid_data() {
-    let server = TestServer::run().await;
+#[sqlx::test]
+async fn returns_200_for_valid_data(pool: Pool<Database>) {
+    let server = TestServer::run(pool).await;
     let body = "name=John%20Doe&email=example%40gmail.com";
 
     Mock::given(path("/email"))
@@ -42,9 +43,9 @@ async fn returns_200_for_valid_data() {
     assert_eq!(saved.email, "example@gmail.com");
 }
 
-#[tokio::test]
-async fn returns_400_when_data_is_missing() {
-    let server = TestServer::run().await;
+#[sqlx::test]
+async fn returns_400_when_data_is_missing(pool: Pool<Database>) {
+    let server = TestServer::run(pool).await;
     let test_cases = vec![
         ("name=John%20Doe", "form is missing the email"),
         ("email=example%40gmail.com", "form is missing the name"),
@@ -60,9 +61,9 @@ async fn returns_400_when_data_is_missing() {
     }
 }
 
-#[tokio::test]
-async fn returns_400_when_data_is_invalid() {
-    let server = TestServer::run().await;
+#[sqlx::test]
+async fn returns_400_when_data_is_invalid(pool: Pool<Database>) {
+    let server = TestServer::run(pool).await;
     let test_cases = vec![
         ("name=&email=example%40gmail.com", "has empty name"),
         ("name=John%20Doe&email=", "has empty email"),

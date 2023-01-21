@@ -8,3 +8,5 @@ pub mod telemetry;
 pub use configuration::Config;
 pub use email_client::EmailClient;
 pub use server::Server;
+
+pub type Database = sqlx::Postgres;
