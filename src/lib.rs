@@ -10,3 +10,4 @@ pub use email_client::EmailClient;
 pub use server::Server;
 
 pub type Database = sqlx::Postgres;
+pub type DbPool = sqlx::Pool<Database>;

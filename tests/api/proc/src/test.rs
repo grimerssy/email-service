@@ -11,7 +11,7 @@ pub fn expand(input: syn::ItemFn) -> TokenStream {
     quote! {
         #[sqlx::test]
         #(#attrs)*
-        async fn #name(pool: sqlx::Pool<zero2prod::Database>) #ret {
+        async fn #name(pool: zero2prod::DbPool) #ret {
             async fn inner(#inputs) #ret {
                 #body
             }

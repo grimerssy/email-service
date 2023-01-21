@@ -1,13 +1,12 @@
 use crate::{
     routes::{health_check, subscribe},
-    Config, EmailClient,
+    Config, DbPool, EmailClient,
 };
 use actix_web::{
     dev::Server as ActixServer,
     web::{get, post, Data},
     App, HttpServer,
 };
-use sqlx::PgPool;
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
 
@@ -18,7 +17,7 @@ pub struct Server {
 
 impl Server {
     pub fn build(config: Config) -> std::io::Result<Self> {
-        let db_pool = PgPool::connect_lazy_with(config.database.with_db());
+        let db_pool = DbPool::connect_lazy_with(config.database.with_db());
         let email_client = EmailClient::new(config.email_client);
         let addr = format!("{}:{}", config.application.host, config.application.port);
         let listener = TcpListener::bind(addr)?;
@@ -33,7 +32,7 @@ impl Server {
 
     fn http_server(
         listener: TcpListener,
-        db_pool: PgPool,
+        db_pool: DbPool,
         email_client: EmailClient,
     ) -> std::io::Result<ActixServer> {
         let db_pool = Data::new(db_pool);

@@ -1,6 +1,6 @@
 use crate::{
     domain::{NewSubscriber, SubscriberEmail, SubscriberName},
-    EmailClient,
+    DbPool, EmailClient,
 };
 use actix_web::{
     web::{Data, Form},
@@ -8,7 +8,6 @@ use actix_web::{
 };
 use chrono::Utc;
 use serde::Deserialize;
-use sqlx::PgPool;
 use tracing::error;
 use uuid::Uuid;
 
@@ -38,7 +37,7 @@ impl TryInto<NewSubscriber> for FormData {
 )]
 pub async fn subscribe(
     Form(form): Form<FormData>,
-    pool: Data<PgPool>,
+    pool: Data<DbPool>,
     email_client: Data<EmailClient>,
 ) -> HttpResponse {
     let subscriber = match form.try_into() {
@@ -59,7 +58,7 @@ pub async fn subscribe(
     name = "Saving new subscriber details in the database",
     skip(subscriber, pool)
 )]
-async fn insert_subscriber(subscriber: &NewSubscriber, pool: &PgPool) -> sqlx::Result<()> {
+async fn insert_subscriber(subscriber: &NewSubscriber, pool: &DbPool) -> sqlx::Result<()> {
     sqlx::query!(
         r#"
         insert into subscriptions (id, name, email, subscribed_at, status)
