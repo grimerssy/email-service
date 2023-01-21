@@ -47,8 +47,27 @@ pub async fn subscribe(
     if insert_subscriber(&subscriber, &pool).await.is_err() {
         return HttpResponse::InternalServerError().finish();
     };
+    let confirmation_link = "https://my-api.com/subscriptions/confirm";
     email_client
-        .send_email(&subscriber.email, "Subject", "Html body", "Text body")
+        .send_email(
+            &subscriber.email,
+            "Subject",
+            &format!(
+                r#"
+        Welcome to the newsletter.
+        <br>
+        Click <a href="{}">here</a> to confirm your subscription.
+        "#,
+                confirmation_link
+            ),
+            &format!(
+                r#"
+        Welcome to the newsletter.
+        Visit {} to confirm you subscription.
+        "#,
+                confirmation_link
+            ),
+        )
         .await
         .map(|_| HttpResponse::Ok().finish())
         .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
