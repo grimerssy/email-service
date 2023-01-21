@@ -1,5 +1,5 @@
 mod health_check;
-mod helpers;
+mod server;
 mod subscriptions;
 
-pub use helpers::TestServer;
+pub use server::TestServer;

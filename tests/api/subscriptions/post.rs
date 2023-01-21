@@ -1,14 +1,11 @@
 use crate::TestServer;
-use sqlx::Pool;
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
 };
-use zero2prod::Database;
 
-#[sqlx::test]
-async fn sends_an_email_for_valid_data(pool: Pool<Database>) {
-    let server = TestServer::run(pool).await;
+#[proc::test]
+async fn sends_an_email_for_valid_data(server: TestServer) {
     let body = "name=John%20Doe&email=example%40gmail.com";
 
     Mock::given(path("/email"))
@@ -21,9 +18,8 @@ async fn sends_an_email_for_valid_data(pool: Pool<Database>) {
     server.post_supscriptions(body.into()).await;
 }
 
-#[sqlx::test]
-async fn returns_200_for_valid_data(pool: Pool<Database>) {
-    let server = TestServer::run(pool).await;
+#[proc::test]
+async fn returns_200_for_valid_data(server: TestServer) {
     let body = "name=John%20Doe&email=example%40gmail.com";
 
     Mock::given(path("/email"))
@@ -36,16 +32,17 @@ async fn returns_200_for_valid_data(pool: Pool<Database>) {
     assert_eq!(200, response.status().as_u16());
 
     let saved = sqlx::query!(r"select email, name from subscriptions",)
-        .fetch_one(&server.db_pool)
+        .fetch_all(&server.db_pool)
         .await
         .expect("Failed to fetch saved subscription");
+    assert_eq!(saved.len(), 1);
+    let saved = saved.first().unwrap();
     assert_eq!(saved.name, "John Doe");
     assert_eq!(saved.email, "example@gmail.com");
 }
 
-#[sqlx::test]
-async fn returns_400_when_data_is_missing(pool: Pool<Database>) {
-    let server = TestServer::run(pool).await;
+#[proc::test]
+async fn returns_400_when_data_is_missing(server: TestServer) {
     let test_cases = vec![
         ("name=John%20Doe", "form is missing the email"),
         ("email=example%40gmail.com", "form is missing the name"),
@@ -61,9 +58,8 @@ async fn returns_400_when_data_is_missing(pool: Pool<Database>) {
     }
 }
 
-#[sqlx::test]
-async fn returns_400_when_data_is_invalid(pool: Pool<Database>) {
-    let server = TestServer::run(pool).await;
+#[proc::test]
+async fn returns_400_when_data_is_invalid(server: TestServer) {
     let test_cases = vec![
         ("name=&email=example%40gmail.com", "has empty name"),
         ("name=John%20Doe&email=", "has empty email"),

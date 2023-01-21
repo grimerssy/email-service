@@ -26,6 +26,7 @@ sqlx = { version = "0.6.2", default-features = false, features = ["runtime-actix
 serde_with = "2.2.0"
 
 [dev-dependencies]
+proc = { path = "tests/api/proc" }
 once_cell = "1.17.0"
 fake = "~2.3.0"
 quickcheck = "0.9.2"
