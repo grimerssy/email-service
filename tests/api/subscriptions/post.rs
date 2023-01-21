@@ -29,7 +29,7 @@ async fn returns_200_for_valid_data(server: TestServer) {
         .await;
 
     let response = server.post_supscriptions(body.into()).await;
-    assert_eq!(200, response.status().as_u16());
+    assert_eq!(response.status().as_u16(), 200);
 
     let saved = sqlx::query!(r"select email, name from subscriptions",)
         .fetch_all(&server.db_pool)
@@ -51,8 +51,8 @@ async fn returns_400_when_data_is_missing(server: TestServer) {
     for (invalid_body, reason) in test_cases {
         let response = server.post_supscriptions(invalid_body.into()).await;
         assert_eq!(
-            400,
             response.status().as_u16(),
+            400,
             "Server does not return 400 when form {reason}",
         );
     }
@@ -71,8 +71,8 @@ async fn returns_400_when_data_is_invalid(server: TestServer) {
     for (invalid_body, reason) in test_cases {
         let response = server.post_supscriptions(invalid_body.into()).await;
         assert_eq!(
-            400,
             response.status().as_u16(),
+            400,
             "Server does not return 400 when form {reason}",
         );
     }
