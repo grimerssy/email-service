@@ -1,6 +1,6 @@
-use crate::TestServer;
+use crate::{Server, TestServer};
 
-#[proc::test]
+#[macros::test]
 async fn returns_200(server: TestServer) {
     let response = server.get_health_check().await;
     assert!(response.status().is_success());

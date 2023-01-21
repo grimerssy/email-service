@@ -1,5 +1,5 @@
 [package]
-name = "proc"
+name = "macros"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
+test_server = { path = "../test_server" }
 proc-macro2 = { version = "1.0.36", default-features = false }
 quote = { version = "1.0.14", default-features = false }
-syn = { version = "1.0.84", features = ["full"] }
+syn = { version = "1.0.84", default-features = false, features = ["full"] }

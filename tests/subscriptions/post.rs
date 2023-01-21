@@ -1,10 +1,10 @@
-use crate::TestServer;
+use crate::{Server, TestServer};
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
 };
 
-#[proc::test]
+#[macros::test]
 async fn sends_an_email_for_valid_data(server: TestServer) {
     let body = "name=John%20Doe&email=example%40gmail.com";
 
@@ -18,7 +18,7 @@ async fn sends_an_email_for_valid_data(server: TestServer) {
     server.post_supscriptions(body.into()).await;
 }
 
-#[proc::test]
+#[macros::test]
 async fn returns_200_for_valid_data(server: TestServer) {
     let body = "name=John%20Doe&email=example%40gmail.com";
 
@@ -41,14 +41,14 @@ async fn returns_200_for_valid_data(server: TestServer) {
     assert_eq!(saved.email, "example@gmail.com");
 }
 
-#[proc::test]
+#[macros::test]
 async fn returns_400_when_data_is_missing(server: TestServer) {
-    let test_cases = vec![
+    let cases = vec![
         ("name=John%20Doe", "form is missing the email"),
         ("email=example%40gmail.com", "form is missing the name"),
         ("", "form is missing both name and email"),
     ];
-    for (invalid_body, reason) in test_cases {
+    for (invalid_body, reason) in cases {
         let response = server.post_supscriptions(invalid_body.into()).await;
         assert_eq!(
             response.status().as_u16(),
@@ -58,9 +58,9 @@ async fn returns_400_when_data_is_missing(server: TestServer) {
     }
 }
 
-#[proc::test]
+#[macros::test]
 async fn returns_400_when_data_is_invalid(server: TestServer) {
-    let test_cases = vec![
+    let cases = vec![
         ("name=&email=example%40gmail.com", "has empty name"),
         ("name=John%20Doe&email=", "has empty email"),
         (
@@ -68,7 +68,7 @@ async fn returns_400_when_data_is_invalid(server: TestServer) {
             "has invalid email",
         ),
     ];
-    for (invalid_body, reason) in test_cases {
+    for (invalid_body, reason) in cases {
         let response = server.post_supscriptions(invalid_body.into()).await;
         assert_eq!(
             response.status().as_u16(),

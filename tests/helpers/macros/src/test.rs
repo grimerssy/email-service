@@ -11,11 +11,11 @@ pub fn expand(input: syn::ItemFn) -> TokenStream {
     quote! {
         #[sqlx::test]
         #(#attrs)*
-        async fn #name(pool: zero2prod::DbPool) #ret {
+        async fn #name(pool: test_server::DbPool) #ret {
             async fn inner(#inputs) #ret {
                 #body
             }
-            inner(crate::TestServer::run(pool).await).await
+            inner(test_server::TestServer::run(pool).await).await
         }
     }
 }

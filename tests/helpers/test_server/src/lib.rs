@@ -1,9 +1,9 @@
 use dotenvy::dotenv;
 use once_cell::sync::Lazy;
 use reqwest::Url;
-use sqlx::PgPool;
 use std::time::Duration;
 use wiremock::MockServer;
+pub use zero2prod::DbPool;
 use zero2prod::{configuration::Config, telemetry, Server};
 
 pub static TELEMETRY: Lazy<Result<(), String>> = Lazy::new(|| {
@@ -21,12 +21,12 @@ pub static TELEMETRY: Lazy<Result<(), String>> = Lazy::new(|| {
 
 pub struct TestServer {
     pub addr: String,
-    pub db_pool: PgPool,
+    pub db_pool: DbPool,
     pub email_server: MockServer,
 }
 
 impl TestServer {
-    pub async fn run(db_pool: PgPool) -> Self {
+    pub async fn run(db_pool: DbPool) -> Self {
         dotenv().ok();
         Lazy::force(&TELEMETRY)
             .as_ref()
