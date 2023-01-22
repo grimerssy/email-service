@@ -47,27 +47,7 @@ pub async fn subscribe(
     if insert_subscriber(&subscriber, &pool).await.is_err() {
         return HttpResponse::InternalServerError().finish();
     };
-    let confirmation_link = "https://my-api.com/subscriptions/confirm";
-    email_client
-        .send_email(
-            &subscriber.email,
-            "Subject",
-            &format!(
-                r#"
-        Welcome to the newsletter.
-        <br>
-        Click <a href="{}">here</a> to confirm your subscription.
-        "#,
-                confirmation_link
-            ),
-            &format!(
-                r#"
-        Welcome to the newsletter.
-        Visit {} to confirm you subscription.
-        "#,
-                confirmation_link
-            ),
-        )
+    send_confirmation_email(&email_client, &subscriber)
         .await
         .map(|_| HttpResponse::Ok().finish())
         .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
@@ -95,4 +75,36 @@ async fn insert_subscriber(subscriber: &NewSubscriber, pool: &DbPool) -> sqlx::R
         error!("Failed to execute query: {:?}", e);
         e
     })
+}
+
+#[tracing::instrument(
+    name = "Sending a confirmation email to a new subscriber",
+    skip(email_client, subscriber)
+)]
+async fn send_confirmation_email(
+    email_client: &EmailClient,
+    subscriber: &NewSubscriber,
+) -> reqwest::Result<()> {
+    let confirmation_link = "https://my-api.com/subscriptions/confirm";
+    email_client
+        .send_email(
+            &subscriber.email,
+            "Subject",
+            &format!(
+                r#"
+        Welcome to the newsletter.
+        <br>
+        Click <a href="{}">here</a> to confirm your subscription.
+        "#,
+                confirmation_link
+            ),
+            &format!(
+                r#"
+        Welcome to the newsletter.
+        Visit {} to confirm you subscription.
+        "#,
+                confirmation_link
+            ),
+        )
+        .await
 }
