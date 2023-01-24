@@ -25,7 +25,7 @@ async fn persists_the_new_subscriber(server: TestServer) {
     let body = "name=John%20Doe&email=example%40gmail.com";
     server.post_supscriptions(body.into()).await;
 
-    let saved = sqlx::query!(r"select email, name from subscriptions",)
+    let saved = sqlx::query!(r"select email, name, status from subscriptions",)
         .fetch_all(&server.db_pool)
         .await
         .expect("Failed to fetch saved subscription");
@@ -34,6 +34,7 @@ async fn persists_the_new_subscriber(server: TestServer) {
     let saved = saved.first().unwrap();
     assert_eq!(saved.name, "John Doe");
     assert_eq!(saved.email, "example@gmail.com");
+    assert_eq!(saved.status, "pending_confirmation");
 }
 
 #[macros::test]
