@@ -24,6 +24,7 @@ unicode-segmentation = { version = "1.10.0", default-features = false }
 validator = { version = "0.16.0", default-features = false }
 sqlx = { version = "0.6.2", default-features = false, features = ["runtime-actix-rustls", "macros", "postgres", "uuid", "chrono", "migrate", "offline"]}
 serde_with = { version = "2.2.0", default-features = false, features = ["macros"] }
+rand = { version = "0.8.5", default-features = false, features = ["std_rng"] }
 
 [dev-dependencies]
 test_server = { path = "tests/helpers/test_server" }

@@ -20,7 +20,8 @@ pub static TELEMETRY: Lazy<Result<(), String>> = Lazy::new(|| {
 });
 
 pub struct TestServer {
-    pub addr: String,
+    pub base_url: String,
+    pub port: u16,
     pub db_pool: DbPool,
     pub email_server: MockServer,
 }
@@ -42,10 +43,12 @@ impl TestServer {
             c
         };
         let server = Server::build(config.clone()).expect("Failed to run server.");
-        let addr = format!("http://{}:{}", config.application.host, server.port());
+        let base_url = config.application.base_url.clone();
+        let port = server.port();
         let _ = tokio::spawn(server.run());
         Self {
-            addr,
+            base_url,
+            port,
             db_pool,
             email_server,
         }

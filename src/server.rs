@@ -1,5 +1,5 @@
 use crate::{
-    routes::{health_check, subscribe},
+    routes::{confirm_subscription, health_check, subscribe},
     Config, DbPool, EmailClient,
 };
 use actix_web::{
@@ -15,6 +15,15 @@ pub struct Server {
     server: ActixServer,
 }
 
+#[derive(Clone, Debug)]
+pub struct AppBaseUrl(String);
+
+impl AsRef<str> for AppBaseUrl {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
 impl Server {
     pub fn build(config: Config) -> std::io::Result<Self> {
         let db_pool = DbPool::connect_lazy_with(config.database.with_db());
@@ -22,7 +31,8 @@ impl Server {
         let addr = format!("{}:{}", config.application.host, config.application.port);
         let listener = TcpListener::bind(addr)?;
         let port = listener.local_addr().unwrap().port();
-        let server = Self::http_server(listener, db_pool, email_client)?;
+        let base_url = AppBaseUrl(config.application.base_url);
+        let server = Self::http_server(listener, db_pool, email_client, base_url)?;
         Ok(Self { port, server })
     }
 
@@ -34,16 +44,20 @@ impl Server {
         listener: TcpListener,
         db_pool: DbPool,
         email_client: EmailClient,
+        base_url: AppBaseUrl,
     ) -> std::io::Result<ActixServer> {
         let db_pool = Data::new(db_pool);
         let email_client = Data::new(email_client);
+        let base_url = Data::new(base_url);
         HttpServer::new(move || {
             App::new()
                 .wrap(TracingLogger::default())
                 .route("/health_check", get().to(health_check))
                 .route("/subscriptions", post().to(subscribe))
+                .route("/subscriptions/confirm", get().to(confirm_subscription))
                 .app_data(db_pool.clone())
                 .app_data(email_client.clone())
+                .app_data(base_url.clone())
         })
         .listen(listener)
         .map(|s| s.run())

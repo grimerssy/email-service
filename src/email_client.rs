@@ -28,16 +28,16 @@ impl EmailClient {
         &self,
         recipient: &SubscriberEmail,
         subject: &str,
-        html_body: &str,
         text_body: &str,
+        html_body: &str,
     ) -> reqwest::Result<()> {
         let url = self.base_url.join("/email").unwrap();
         let request_body = SendEmailRequest {
             from: self.sender.as_ref(),
             to: recipient.as_ref(),
             subject,
-            html_body,
             text_body,
+            html_body,
         };
         self.http_client
             .post(url)
@@ -59,8 +59,8 @@ struct SendEmailRequest<'a> {
     from: &'a str,
     to: &'a str,
     subject: &'a str,
-    html_body: &'a str,
     text_body: &'a str,
+    html_body: &'a str,
 }
 
 #[cfg(test)]
@@ -98,12 +98,13 @@ mod tests {
     }
 
     async fn configure_server(server: &MockServer, response: ResponseTemplate) {
+        use reqwest::header::CONTENT_TYPE;
         use wiremock::{
             matchers::{header, header_exists, method, path},
             Mock,
         };
         Mock::given(header_exists("X-Postmark-Server-Token"))
-            .and(header("Content-Type", "application/json"))
+            .and(header(CONTENT_TYPE, "application/json"))
             .and(path("/email"))
             .and(method("POST"))
             .and(expected_body())
@@ -147,8 +148,8 @@ mod tests {
                 json.get("From").is_some()
                     && json.get("To").is_some()
                     && json.get("Subject").is_some()
-                    && json.get("HtmlBody").is_some()
                     && json.get("TextBody").is_some()
+                    && json.get("HtmlBody").is_some()
             }
         }
         BodyMatcher

@@ -30,6 +30,11 @@ impl Config {
             .add_source(config::File::from(config_directory.join("base.yaml")))
             .add_source(config::File::from(config_directory.join(config_file)))
             .add_source(config::Environment::default().separator("_"))
+            .add_source(
+                config::Environment::with_prefix("APP")
+                    .prefix_separator("_")
+                    .separator("__"),
+            )
             .build()?
             .try_deserialize::<Self>()
     }

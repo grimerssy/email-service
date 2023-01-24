@@ -1,11 +1,12 @@
-use crate::{mock_email_server, Server, TestServer};
-use linkify::{LinkFinder, LinkKind};
+mod confirm;
+
+use crate::{Helpers, Server, TestServer};
 use wiremock::ResponseTemplate;
 
 #[macros::test]
 async fn post_returns_200_for_valid_data(server: TestServer) {
-    mock_email_server(ResponseTemplate::new(200), None)
-        .mount(&server.email_server)
+    server
+        .mock_email_server(ResponseTemplate::new(200), None)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
     let response = server.post_subscriptions(body.into()).await;
@@ -14,8 +15,8 @@ async fn post_returns_200_for_valid_data(server: TestServer) {
 
 #[macros::test]
 async fn post_persists_the_new_subscriber(server: TestServer) {
-    mock_email_server(ResponseTemplate::new(200), None)
-        .mount(&server.email_server)
+    server
+        .mock_email_server(ResponseTemplate::new(200), None)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
     server.post_subscriptions(body.into()).await;
@@ -34,8 +35,8 @@ async fn post_persists_the_new_subscriber(server: TestServer) {
 
 #[macros::test]
 async fn post_sends_an_email_for_valid_data(server: TestServer) {
-    mock_email_server(ResponseTemplate::new(200), None)
-        .mount(&server.email_server)
+    server
+        .mock_email_server(ResponseTemplate::new(200), None)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
     server.post_subscriptions(body.into()).await;
@@ -43,34 +44,22 @@ async fn post_sends_an_email_for_valid_data(server: TestServer) {
 
 #[macros::test]
 async fn post_sends_an_email_with_confirmation_link(server: TestServer) {
-    mock_email_server(ResponseTemplate::new(200), None)
-        .mount(&server.email_server)
+    server
+        .mock_email_server(ResponseTemplate::new(200), None)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
     server.post_subscriptions(body.into()).await;
 
-    let body = server
+    let email_request = server
         .email_server
         .received_requests()
         .await
         .unwrap()
         .first()
         .cloned()
-        .unwrap()
-        .body;
-    let body = serde_json::from_slice::<serde_json::Value>(&body).unwrap();
-
-    let get_link = |s: &str| {
-        let links = LinkFinder::new()
-            .links(s)
-            .filter(|l| l.kind() == &LinkKind::Url)
-            .collect::<Vec<_>>();
-        assert_eq!(links.len(), 1);
-        links.first().unwrap().as_str().to_owned()
-    };
-    let html_link = get_link(body["HtmlBody"].as_str().unwrap());
-    let text_link = get_link(body["TextBody"].as_str().unwrap());
-    assert_eq!(html_link, text_link);
+        .unwrap();
+    let links = server.extract_links(&email_request);
+    assert_eq!(links.text, links.html);
 }
 
 #[macros::test]
