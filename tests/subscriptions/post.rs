@@ -12,7 +12,7 @@ async fn returns_200_for_valid_data(server: TestServer) {
         .mount(&server.email_server)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
-    let response = server.post_supscriptions(body.into()).await;
+    let response = server.post_subscriptions(body.into()).await;
     assert_eq!(response.status().as_u16(), 200);
 }
 
@@ -23,7 +23,7 @@ async fn persists_the_new_subscriber(server: TestServer) {
         .mount(&server.email_server)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
-    server.post_supscriptions(body.into()).await;
+    server.post_subscriptions(body.into()).await;
 
     let saved = sqlx::query!(r"select email, name, status from subscriptions",)
         .fetch_all(&server.db_pool)
@@ -45,7 +45,7 @@ async fn sends_an_email_for_valid_data(server: TestServer) {
         .mount(&server.email_server)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
-    server.post_supscriptions(body.into()).await;
+    server.post_subscriptions(body.into()).await;
 }
 
 #[macros::test]
@@ -55,7 +55,7 @@ async fn sends_an_email_with_confirmation_link(server: TestServer) {
         .mount(&server.email_server)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
-    server.post_supscriptions(body.into()).await;
+    server.post_subscriptions(body.into()).await;
 
     let body = server
         .email_server
@@ -89,7 +89,7 @@ async fn returns_400_when_data_is_missing(server: TestServer) {
         ("", "form is missing both name and email"),
     ];
     for (invalid_body, reason) in cases {
-        let response = server.post_supscriptions(invalid_body.into()).await;
+        let response = server.post_subscriptions(invalid_body.into()).await;
         assert_eq!(
             response.status().as_u16(),
             400,
@@ -109,7 +109,7 @@ async fn returns_400_when_data_is_invalid(server: TestServer) {
         ),
     ];
     for (invalid_body, reason) in cases {
-        let response = server.post_supscriptions(invalid_body.into()).await;
+        let response = server.post_subscriptions(invalid_body.into()).await;
         assert_eq!(
             response.status().as_u16(),
             400,
