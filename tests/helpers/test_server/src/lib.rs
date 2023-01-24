@@ -8,11 +8,7 @@ use zero2prod::{configuration::Config, telemetry, Server};
 
 pub static TELEMETRY: Lazy<Result<(), String>> = Lazy::new(|| {
     let (name, filter) = ("test", "debug");
-    if std::env::var("TEST_LOG")
-        .unwrap_or_default()
-        .parse::<bool>()
-        .unwrap_or_default()
-    {
+    if std::env::var("TEST_LOG").is_ok() {
         telemetry::init(name, filter, std::io::stdout)
     } else {
         telemetry::init(name, filter, std::io::sink)
