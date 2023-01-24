@@ -1,10 +1,11 @@
 mod confirm;
 pub use confirm::*;
+use sqlx::Transaction;
 
 use crate::{
     domain::{NewSubscriber, SubscriberEmail, SubscriberName},
     server::AppBaseUrl,
-    DbPool, EmailClient,
+    Database, DbPool, EmailClient,
 };
 use actix_web::{
     web::{Data, Form},
@@ -49,15 +50,22 @@ pub async fn subscribe(
         Ok(subscriber) => subscriber,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
-    let subscriber_id = match insert_subscriber(&subscriber, &pool).await {
+    let mut transaction = match pool.begin().await {
+        Ok(transaction) => transaction,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    let subscriber_id = match insert_subscriber(&mut transaction, &subscriber).await {
         Ok(subscriber_id) => subscriber_id,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
     let subscription_token = generate_subscription_token();
-    if store_token(&subscriber_id, &subscription_token, pool.as_ref())
+    if store_token(&mut transaction, &subscriber_id, &subscription_token)
         .await
         .is_err()
     {
+        return HttpResponse::InternalServerError().finish();
+    }
+    if transaction.commit().await.is_err() {
         return HttpResponse::InternalServerError().finish();
     }
     send_confirmation_email(
@@ -73,9 +81,12 @@ pub async fn subscribe(
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
-    skip(subscriber, pool)
+    skip(subscriber, transaction)
 )]
-async fn insert_subscriber(subscriber: &NewSubscriber, pool: &DbPool) -> sqlx::Result<Uuid> {
+async fn insert_subscriber(
+    transaction: &mut Transaction<'_, Database>,
+    subscriber: &NewSubscriber,
+) -> sqlx::Result<Uuid> {
     let subscriber_id = Uuid::new_v4();
     sqlx::query!(
         r#"
@@ -87,7 +98,7 @@ async fn insert_subscriber(subscriber: &NewSubscriber, pool: &DbPool) -> sqlx::R
         subscriber.email.as_ref(),
         Utc::now(),
     )
-    .execute(pool)
+    .execute(transaction)
     .await
     .map(|_| subscriber_id)
     .map_err(|e| {
@@ -98,12 +109,12 @@ async fn insert_subscriber(subscriber: &NewSubscriber, pool: &DbPool) -> sqlx::R
 
 #[tracing::instrument(
     name = "Storing subscription token in the database",
-    skip(subscriber_id, subscription_token, pool)
+    skip(subscriber_id, subscription_token, transaction)
 )]
 async fn store_token(
+    transaction: &mut Transaction<'_, Database>,
     subscriber_id: &Uuid,
     subscription_token: &str,
-    pool: &DbPool,
 ) -> sqlx::Result<()> {
     sqlx::query!(
         r#"
@@ -113,7 +124,7 @@ async fn store_token(
         subscription_token,
         subscriber_id,
     )
-    .execute(pool)
+    .execute(transaction)
     .await
     .map(|_| ())
     .map_err(|e| {
