@@ -1,14 +1,10 @@
-use crate::{Server, TestServer};
+use crate::{mock_email_server, Server, TestServer};
 use linkify::{LinkFinder, LinkKind};
-use wiremock::{
-    matchers::{method, path},
-    Mock, MockBuilder, ResponseTemplate,
-};
+use wiremock::ResponseTemplate;
 
 #[macros::test]
-async fn returns_200_for_valid_data(server: TestServer) {
-    mock_email_server()
-        .respond_with(ResponseTemplate::new(200))
+async fn post_returns_200_for_valid_data(server: TestServer) {
+    mock_email_server(ResponseTemplate::new(200), None)
         .mount(&server.email_server)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
@@ -17,9 +13,8 @@ async fn returns_200_for_valid_data(server: TestServer) {
 }
 
 #[macros::test]
-async fn persists_the_new_subscriber(server: TestServer) {
-    mock_email_server()
-        .respond_with(ResponseTemplate::new(200))
+async fn post_persists_the_new_subscriber(server: TestServer) {
+    mock_email_server(ResponseTemplate::new(200), None)
         .mount(&server.email_server)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
@@ -38,10 +33,8 @@ async fn persists_the_new_subscriber(server: TestServer) {
 }
 
 #[macros::test]
-async fn sends_an_email_for_valid_data(server: TestServer) {
-    mock_email_server()
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
+async fn post_sends_an_email_for_valid_data(server: TestServer) {
+    mock_email_server(ResponseTemplate::new(200), None)
         .mount(&server.email_server)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
@@ -49,9 +42,8 @@ async fn sends_an_email_for_valid_data(server: TestServer) {
 }
 
 #[macros::test]
-async fn sends_an_email_with_confirmation_link(server: TestServer) {
-    mock_email_server()
-        .respond_with(ResponseTemplate::new(200))
+async fn post_sends_an_email_with_confirmation_link(server: TestServer) {
+    mock_email_server(ResponseTemplate::new(200), None)
         .mount(&server.email_server)
         .await;
     let body = "name=John%20Doe&email=example%40gmail.com";
@@ -82,7 +74,7 @@ async fn sends_an_email_with_confirmation_link(server: TestServer) {
 }
 
 #[macros::test]
-async fn returns_400_when_data_is_missing(server: TestServer) {
+async fn post_returns_400_when_data_is_missing(server: TestServer) {
     let cases = vec![
         ("name=John%20Doe", "form is missing the email"),
         ("email=example%40gmail.com", "form is missing the name"),
@@ -99,7 +91,7 @@ async fn returns_400_when_data_is_missing(server: TestServer) {
 }
 
 #[macros::test]
-async fn returns_400_when_data_is_invalid(server: TestServer) {
+async fn post_returns_400_when_data_is_invalid(server: TestServer) {
     let cases = vec![
         ("name=&email=example%40gmail.com", "has empty name"),
         ("name=John%20Doe&email=", "has empty email"),
@@ -116,8 +108,4 @@ async fn returns_400_when_data_is_invalid(server: TestServer) {
             "Server does not return 400 when form {reason}",
         );
     }
-}
-
-fn mock_email_server() -> MockBuilder {
-    Mock::given(path("/email")).and(method("POST"))
 }
