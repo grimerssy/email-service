@@ -1,9 +1,8 @@
 use actix_web::{
     web::{Data, Query},
-    HttpResponse,
+    HttpResponse, ResponseError,
 };
 use serde::Deserialize;
-use tracing::error;
 use uuid::Uuid;
 
 use crate::DbPool;
@@ -13,21 +12,33 @@ pub struct Parameters {
     subscription_token: String,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ConfirmError {
+    #[error("Failed to identify user")]
+    UnknownUser,
+    #[error(transparent)]
+    Unexpected(#[from] anyhow::Error),
+}
+
+impl ResponseError for ConfirmError {
+    fn status_code(&self) -> reqwest::StatusCode {
+        match self {
+            Self::UnknownUser => reqwest::StatusCode::UNAUTHORIZED,
+            Self::Unexpected(_) => reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
 #[tracing::instrument(name = "Confirm a pending subscriber", skip(params, pool))]
-pub async fn confirm_subscription(params: Query<Parameters>, pool: Data<DbPool>) -> HttpResponse {
-    let subscriber_id = match get_subscriber_id_from_token(&params.subscription_token, &pool).await
-    {
-        Ok(id) => id,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
-    let subscriber_id = match subscriber_id {
-        Some(id) => id,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-    confirm_subscriber(&subscriber_id, &pool)
-        .await
-        .map(|_| HttpResponse::Ok().finish())
-        .unwrap_or_else(|_| HttpResponse::InternalServerError().finish())
+pub async fn confirm_subscription(
+    params: Query<Parameters>,
+    pool: Data<DbPool>,
+) -> Result<HttpResponse, ConfirmError> {
+    let subscriber_id = get_subscriber_id_from_token(&params.subscription_token, &pool)
+        .await?
+        .ok_or(ConfirmError::UnknownUser)?;
+    confirm_subscriber(&subscriber_id, &pool).await?;
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[tracing::instrument(
@@ -37,8 +48,8 @@ pub async fn confirm_subscription(params: Query<Parameters>, pool: Data<DbPool>)
 async fn get_subscriber_id_from_token(
     subscription_token: &str,
     pool: &DbPool,
-) -> sqlx::Result<Option<Uuid>> {
-    sqlx::query!(
+) -> anyhow::Result<Option<Uuid>> {
+    let subscriber_id = sqlx::query!(
         r#"
         select subscriber_id from subscription_tokens
         where subscription_token = $1;
@@ -46,16 +57,13 @@ async fn get_subscriber_id_from_token(
         subscription_token
     )
     .fetch_optional(pool)
-    .await
-    .map(|r| r.map(|o| o.subscriber_id))
-    .map_err(|e| {
-        error!("Failed to execute query: {:?}", e);
-        e
-    })
+    .await?
+    .map(|r| r.subscriber_id);
+    Ok(subscriber_id)
 }
 
 #[tracing::instrument(name = "Confirming a pending subscriber", skip(subscriber_id, pool))]
-async fn confirm_subscriber(subscriber_id: &Uuid, pool: &DbPool) -> sqlx::Result<()> {
+async fn confirm_subscriber(subscriber_id: &Uuid, pool: &DbPool) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
         update subscriptions
@@ -65,10 +73,6 @@ async fn confirm_subscriber(subscriber_id: &Uuid, pool: &DbPool) -> sqlx::Result
         subscriber_id
     )
     .execute(pool)
-    .await
-    .map(|_| ())
-    .map_err(|e| {
-        error!("Failed to execute query: {:?}", e);
-        e
-    })
+    .await?;
+    Ok(())
 }
