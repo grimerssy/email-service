@@ -1,17 +1,19 @@
 {
   "db": "PostgreSQL",
-  "4a2fbaa5fc6685ca7436949d43ea8d907b13b4ad4417ed10c8459fac69c5c31d": {
+  "3af361c918f0538fca989700d831054387f283b9b6c1c7e53d2ca126f538c1cf": {
     "describe": {
       "columns": [],
       "nullable": [],
       "parameters": {
         "Left": [
+          "Uuid",
           "Text",
-          "Uuid"
+          "Text",
+          "Timestamptz"
         ]
       }
     },
-    "query": "\n        insert into subscription_tokens (subscription_token, subscriber_id)\n        values ($1, $2);\n    "
+    "query": "\n        insert into subscriptions (id, name, email, subscribed_at, status)\n        values ($1, $2, $3, $4, 'pending_confirmation');\n        "
   },
   "4a668e0a72e2243acfe41b545654a5c8ffe6df6a4855884b2d41d1578a9435cd": {
     "describe": {
@@ -24,6 +26,24 @@
       }
     },
     "query": "\n        update subscriptions\n        set status = 'confirmed'\n        where id = $1;\n        "
+  },
+  "53e0e1b16349f0a80603b978eab44e81c7f14639316cf5fd4dd370e8b5cd0699": {
+    "describe": {
+      "columns": [
+        {
+          "name": "email",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        select email from subscriptions\n        where status = 'confirmed';\n        "
   },
   "67bef6d2eef6ce7648e2b1d01dde54b690cd671f7875d5073f64eeb59e168b0b": {
     "describe": {
@@ -45,19 +65,17 @@
     },
     "query": "\n        select subscriber_id from subscription_tokens\n        where subscription_token = $1;\n        "
   },
-  "89df168417b07cf70e81970fa64419a0ba24cf2839ba07977413d7cfa27a4da8": {
+  "6dabf67ad4ce86429a9a779f3e7b6bab88fde0ec8280c0740684ec1d1899c089": {
     "describe": {
       "columns": [],
       "nullable": [],
       "parameters": {
         "Left": [
-          "Uuid",
           "Text",
-          "Text",
-          "Timestamptz"
+          "Uuid"
         ]
       }
     },
-    "query": "\n        insert into subscriptions (id, name, email, subscribed_at, status)\n        values ($1, $2, $3, $4, 'pending_confirmation');\n    "
+    "query": "\n        insert into subscription_tokens (subscription_token, subscriber_id)\n        values ($1, $2);\n        "
   }
 }
