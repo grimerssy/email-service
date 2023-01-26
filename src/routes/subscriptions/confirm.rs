@@ -37,8 +37,10 @@ pub async fn confirm_subscription(
     let subscriber_id = get_subscriber_id_from_token(&params.subscription_token, &pool)
         .await?
         .ok_or(ConfirmError::UnknownUser)?;
-    confirm_subscriber(&subscriber_id, &pool).await?;
-    Ok(HttpResponse::Ok().finish())
+    confirm_subscriber(&subscriber_id, &pool)
+        .await
+        .map(|_| HttpResponse::Ok().finish())
+        .map_err(ConfirmError::from)
 }
 
 #[tracing::instrument(
@@ -49,7 +51,7 @@ async fn get_subscriber_id_from_token(
     subscription_token: &str,
     pool: &DbPool,
 ) -> anyhow::Result<Option<Uuid>> {
-    let subscriber_id = sqlx::query!(
+    sqlx::query!(
         r#"
         select subscriber_id from subscription_tokens
         where subscription_token = $1;
@@ -57,9 +59,9 @@ async fn get_subscriber_id_from_token(
         subscription_token
     )
     .fetch_optional(pool)
-    .await?
-    .map(|r| r.subscriber_id);
-    Ok(subscriber_id)
+    .await
+    .map(|result| result.map(|record| record.subscriber_id))
+    .map_err(anyhow::Error::from)
 }
 
 #[tracing::instrument(name = "Confirming a pending subscriber", skip(subscriber_id, pool))]
@@ -73,6 +75,7 @@ async fn confirm_subscriber(subscriber_id: &Uuid, pool: &DbPool) -> anyhow::Resu
         subscriber_id
     )
     .execute(pool)
-    .await?;
-    Ok(())
+    .await
+    .map(|_| ())
+    .map_err(anyhow::Error::from)
 }

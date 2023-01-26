@@ -1,14 +1,15 @@
 use wiremock::ResponseTemplate;
 
 use crate::{Helpers, Server, TestServer};
+use hashmap_macro::hashmap;
 
 #[macros::test]
 async fn get_to_link_from_post_subscription_returns_200(server: TestServer) {
     server
         .mock_email_server(ResponseTemplate::new(200), None)
         .await;
-    let body = "name=John%20Doe&email=example%40gmail.com";
-    server.post_subscriptions(body.into()).await;
+    let body = hashmap!["name" => "John Doe", "email" => "example@gmail.com"];
+    server.post_subscriptions(&body).await;
 
     let email_request = server
         .email_server
@@ -18,9 +19,8 @@ async fn get_to_link_from_post_subscription_returns_200(server: TestServer) {
         .first()
         .cloned()
         .unwrap();
-    let mut link = server.extract_links(&email_request).html;
+    let link = server.extract_links(&email_request).html;
     assert_eq!(link.host_str(), Some("127.0.0.1"));
-    link.set_port(Some(server.port)).unwrap();
 
     let response = reqwest::get(link).await.unwrap();
     assert_eq!(response.status().as_u16(), 200);
@@ -31,8 +31,8 @@ async fn get_confirms_a_subscriber(server: TestServer) {
     server
         .mock_email_server(ResponseTemplate::new(200), None)
         .await;
-    let body = "name=John%20Doe&email=example%40gmail.com";
-    server.post_subscriptions(body.into()).await;
+    let body = hashmap!["name" => "John Doe", "email" => "example@gmail.com"];
+    server.post_subscriptions(&body).await;
 
     let email_request = server
         .email_server

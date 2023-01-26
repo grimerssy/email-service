@@ -1,7 +1,4 @@
-use crate::{
-    routes::{confirm_subscription, health_check, subscribe},
-    Config, DbPool, EmailClient,
-};
+use crate::{routes::*, Config, DbPool, EmailClient};
 use actix_web::{
     dev::Server as ActixServer,
     web::{get, post, Data},
@@ -55,6 +52,7 @@ impl Server {
                 .route("/health_check", get().to(health_check))
                 .route("/subscriptions", post().to(subscribe))
                 .route("/subscriptions/confirm", get().to(confirm_subscription))
+                .route("/newsletters", post().to(publish_newsletter))
                 .app_data(db_pool.clone())
                 .app_data(email_client.clone())
                 .app_data(base_url.clone())

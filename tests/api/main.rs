@@ -1,20 +1,23 @@
 mod health_check;
+mod newsletter;
 mod subscriptions;
 
+use std::collections::HashMap;
+
 use async_trait::async_trait;
-use reqwest::{header::CONTENT_TYPE, Client, Response, Url};
+use reqwest::{Client, Response, Url};
 use test_server::TestServer;
 
-static FAILED_TO_EXECUTE: &str = "Failed to execute request";
-
-static FORM_URLENCODED: &str = "application/x-www-form-urlencoded";
+static FAILED_TO_EXECUTE_REQUEST: &str = "Failed to execute request";
 
 #[async_trait]
 trait Server {
     async fn get_health_check(&self) -> Response;
 
-    async fn post_subscriptions(&self, body: String) -> Response;
+    async fn post_subscriptions(&self, body: &HashMap<&str, &str>) -> Response;
     async fn get_subscriptions_confirm(&self) -> Response;
+
+    async fn post_newsletters(&self, body: &serde_json::Value) -> Response;
 }
 
 #[async_trait]
@@ -24,17 +27,16 @@ impl Server for TestServer {
             .get(health_check(&self.addr()))
             .send()
             .await
-            .expect(FAILED_TO_EXECUTE)
+            .expect(FAILED_TO_EXECUTE_REQUEST)
     }
 
-    async fn post_subscriptions(&self, body: String) -> Response {
+    async fn post_subscriptions(&self, body: &HashMap<&str, &str>) -> Response {
         Client::new()
             .post(subscriptions(&self.addr()))
-            .header(CONTENT_TYPE, FORM_URLENCODED)
-            .body(body)
+            .form(body)
             .send()
             .await
-            .expect(FAILED_TO_EXECUTE)
+            .expect(FAILED_TO_EXECUTE_REQUEST)
     }
 
     async fn get_subscriptions_confirm(&self) -> Response {
@@ -42,7 +44,16 @@ impl Server for TestServer {
             .get(subscriptions_confirm(&self.addr()))
             .send()
             .await
-            .expect(FAILED_TO_EXECUTE)
+            .expect(FAILED_TO_EXECUTE_REQUEST)
+    }
+
+    async fn post_newsletters(&self, body: &serde_json::Value) -> Response {
+        Client::new()
+            .post(newsletters(&self.addr()))
+            .json(body)
+            .send()
+            .await
+            .expect(FAILED_TO_EXECUTE_REQUEST)
     }
 }
 
@@ -93,8 +104,14 @@ impl Helpers for TestServer {
             Url::parse(&link).unwrap()
         };
         let body = serde_json::from_slice::<serde_json::Value>(&request.body).unwrap();
-        let text = extract_link(body["TextBody"].as_str().unwrap());
-        let html = extract_link(body["HtmlBody"].as_str().unwrap());
+        let (text, html) = {
+            let mut links = ["Text", "Html"].iter().map(|x| {
+                let mut link = extract_link(body[format!("{}Body", x)].as_str().unwrap());
+                link.set_port(Some(self.port)).unwrap();
+                link
+            });
+            (links.next().unwrap(), links.next().unwrap())
+        };
         Links { text, html }
     }
 }
@@ -109,4 +126,8 @@ fn subscriptions(base: &str) -> String {
 
 fn subscriptions_confirm(base: &str) -> String {
     format!("{}/confirm", subscriptions(base))
+}
+
+fn newsletters(base: &str) -> String {
+    format!("{}/newsletters", base)
 }

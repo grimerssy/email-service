@@ -38,3 +38,4 @@ quickcheck_macros = { version = "0.9.1", default-features = false }
 wiremock = { version = "0.5.17", default-features = false }
 serde_json = { version = "1.0.91", default-features = false }
 linkify = { version = "0.9.0", default-features = false }
+hashmap_macro = { version = "0.1.0", default-features = false }

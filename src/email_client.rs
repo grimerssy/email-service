@@ -30,7 +30,7 @@ impl EmailClient {
         subject: &str,
         text_body: &str,
         html_body: &str,
-    ) -> reqwest::Result<()> {
+    ) -> anyhow::Result<()> {
         let url = self.base_url.join("/email").unwrap();
         let request_body = SendEmailRequest {
             from: self.sender.as_ref(),
@@ -50,6 +50,7 @@ impl EmailClient {
             .await?
             .error_for_status()
             .map(|_| ())
+            .map_err(anyhow::Error::from)
     }
 }
 
@@ -114,7 +115,7 @@ mod tests {
             .await
     }
 
-    async fn send_email(server: &MockServer) -> reqwest::Result<()> {
+    async fn send_email(server: &MockServer) -> anyhow::Result<()> {
         use fake::{
             faker::{
                 internet::en::SafeEmail,

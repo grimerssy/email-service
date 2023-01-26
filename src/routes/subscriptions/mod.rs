@@ -98,7 +98,7 @@ async fn insert_subscriber(
         r#"
         insert into subscriptions (id, name, email, subscribed_at, status)
         values ($1, $2, $3, $4, 'pending_confirmation');
-    "#,
+        "#,
         subscriber_id,
         subscriber.name.as_ref(),
         subscriber.email.as_ref(),
@@ -122,13 +122,14 @@ async fn store_token(
         r#"
         insert into subscription_tokens (subscription_token, subscriber_id)
         values ($1, $2);
-    "#,
+        "#,
         subscription_token,
         subscriber_id,
     )
     .execute(transaction)
-    .await?;
-    Ok(())
+    .await
+    .map(|_| ())
+    .map_err(anyhow::Error::from)
 }
 
 #[tracing::instrument(
@@ -145,28 +146,26 @@ async fn send_confirmation_email(
         "{}/subscriptions/confirm?subscription_token={}",
         base_url, subscription_token
     );
-    email_client
-        .send_email(
-            &subscriber.email,
-            "Subject",
-            &format!(
-                r#"
+    let subject = "Subject";
+    let text_body = &format!(
+        r#"
+        Welcome to the newsletter.
+        Visit {} to confirm you subscription.
+        "#,
+        confirmation_link
+    );
+    let html_body = &format!(
+        r#"
         Welcome to the newsletter.
         <br>
         Click <a href="{}">here</a> to confirm your subscription.
         "#,
-                confirmation_link
-            ),
-            &format!(
-                r#"
-        Welcome to the newsletter.
-        Visit {} to confirm you subscription.
-        "#,
-                confirmation_link
-            ),
-        )
-        .await?;
-    Ok(())
+        confirmation_link
+    );
+    email_client
+        .send_email(&subscriber.email, subject, text_body, html_body)
+        .await
+        .map_err(anyhow::Error::from)
 }
 
 fn generate_subscription_token() -> String {
