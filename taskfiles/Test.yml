@@ -1,0 +1,20 @@
+version: 3
+
+tasks:
+  prelude:
+    desc: Raises the limit of open files
+    internal: true
+    cmds:
+      - ulimit -n 1024
+
+  default:
+    desc: Runs crate tests
+    cmds:
+      - task: prelude
+      - cargo test
+
+  log:
+    desc: Runs crate tests with logs enabled
+    cmds:
+      - task: prelude
+      - TEST_LOG=enable cargo test | bunyan

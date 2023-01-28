@@ -1,0 +1,11 @@
+version: 3
+
+dotenv: [.env]
+
+includes:
+  database:
+    taskfile: taskfiles/Database.yml
+    aliases: [db]
+  test:
+    taskfile: taskfiles/Test.yml
+    aliases: [t]

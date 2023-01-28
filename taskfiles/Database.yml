@@ -1,0 +1,71 @@
+version: 3
+
+vars:
+  DATABASE_URL_PATTERN: postgres:\/\/(.+):(.+)@(.+):(.+)\/(.+)
+
+tasks:
+  prelude:
+    internal: true
+    preconditions:
+      - sh: test -f .env
+        msg: Could not find .env file in the current directory
+      - sh: "[ $DATABASE_URL ]"
+        msg: DATABASE_URL must be set
+
+  up:
+    desc: Spins up a new db instance and runs migrations
+    cmds:
+      - task: create
+      - task: migrate
+
+  down:
+    desc: Drops the database
+    cmds:
+      - task: prelude
+      - |
+        DB_NAME=$(echo $DATABASE_URL | sed -E 's/{{.DATABASE_URL_PATTERN}}/\5/')
+        docker rm -f "${DB_NAME}_db"
+
+  shell:
+    desc: Opens up an interactive shell for configured database
+    cmds:
+      - task: prelude
+      - psql $DATABASE_URL
+
+  create:
+    desc: Creates a postgres container
+    cmds:
+      - task: prelude
+      - |
+        read -r DB_USER DB_PASSWORD DB_PORT DB_NAME <<< $( \
+          echo "$DATABASE_URL" | \
+          sed -E 's/{{.DATABASE_URL_PATTERN}}/\1 \2 \4 \5/' \
+        )
+        docker run \
+          -d \
+          --name "${DB_NAME}_db" \
+          -e POSTGRES_USER="$DB_USER" \
+          -e POSTGRES_PASSWORD="$DB_PASSWORD" \
+          -e POSTGRES_DB="$DB_NAME" \
+          -p "$DB_PORT:5432" \
+          postgres \
+          -N 1000
+
+  migrate:
+    desc: Applies migrations to the database
+    cmds:
+      - task: prelude
+      - sqlx migrate run
+
+  migrate:check:
+    desc: Reruns latest database migration
+    cmds:
+      - task: prelude
+      - sqlx migrate revert
+      - sqlx migrate run
+
+  migrate:revert:
+    desc: Reverts latest database migration
+    cmds:
+      - task: prelude
+      - sqlx migrate revert
