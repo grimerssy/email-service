@@ -17,7 +17,7 @@ impl TryFrom<String> for SubscriberEmail {
         if validate_email(&value) {
             Ok(Self(value))
         } else {
-            Err(format!("{} is not a valid email", value))
+            Err(format!("{value} is not a valid email"))
         }
     }
 }

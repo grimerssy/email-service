@@ -17,7 +17,7 @@ impl TryFrom<String> for SubscriberName {
             || value.graphemes(true).count() > 256
             || value.chars().any(|c| forbidden_characters.contains(&c))
         {
-            Err(format!("{} is not a valid username", value))
+            Err(format!("{value} is not a valid username"))
         } else {
             Ok(Self(value))
         }

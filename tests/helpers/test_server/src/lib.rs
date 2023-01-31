@@ -1,6 +1,6 @@
 use dotenvy::dotenv;
 use once_cell::sync::Lazy;
-use reqwest::Url;
+use reqwest::{Client, Url};
 use std::time::Duration;
 use wiremock::MockServer;
 pub use zero2prod::DbPool;
@@ -18,6 +18,7 @@ pub static TELEMETRY: Lazy<Result<(), String>> = Lazy::new(|| {
 pub struct TestServer {
     pub base_url: String,
     pub port: u16,
+    pub http_client: Client,
     pub db_pool: DbPool,
     pub email_server: MockServer,
 }
@@ -41,10 +42,12 @@ impl TestServer {
         let server = Server::build(config.clone()).expect("Failed to run server.");
         let base_url = config.application.base_url.clone();
         let port = server.port();
+        let http_client = Client::new();
         let _ = tokio::spawn(server.run());
         Self {
             base_url,
             port,
+            http_client,
             db_pool,
             email_server,
         }

@@ -1,4 +1,4 @@
-use crate::{Server, TestServer};
+use crate::{ServerExt, TestServer};
 
 #[macros::test]
 async fn get_returns_200(server: TestServer) {

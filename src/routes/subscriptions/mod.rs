@@ -142,25 +142,21 @@ async fn send_confirmation_email(
     base_url: &str,
     subscription_token: &str,
 ) -> anyhow::Result<()> {
-    let confirmation_link = format!(
-        "{}/subscriptions/confirm?subscription_token={}",
-        base_url, subscription_token
-    );
+    let confirmation_link =
+        format!("{base_url}/subscriptions/confirm?subscription_token={subscription_token}");
     let subject = "Subject";
     let text_body = &format!(
         r#"
         Welcome to the newsletter.
-        Visit {} to confirm you subscription.
-        "#,
-        confirmation_link
+        Visit {confirmation_link} to confirm you subscription.
+        "#
     );
     let html_body = &format!(
         r#"
         Welcome to the newsletter.
         <br>
-        Click <a href="{}">here</a> to confirm your subscription.
-        "#,
-        confirmation_link
+        Click <a href="{confirmation_link}">here</a> to confirm your subscription.
+        "#
     );
     email_client
         .send_email(&subscriber.email, subject, text_body, html_body)

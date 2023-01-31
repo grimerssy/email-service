@@ -1,6 +1,6 @@
 mod confirm;
 
-use crate::{Helpers, Server, TestServer};
+use crate::{ServerExt, TestServer};
 use hashmap_macro::hashmap;
 use wiremock::ResponseTemplate;
 

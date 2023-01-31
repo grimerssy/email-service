@@ -77,5 +77,31 @@
       }
     },
     "query": "\n        insert into subscription_tokens (subscription_token, subscriber_id)\n        values ($1, $2);\n        "
+  },
+  "8915a67dd5d322cd44bc9fdc7c9b7caace8e085edb25bfa3ae37f6dc90bd0af4": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        select user_id, password_hash from users\n        where username = $1;\n        "
   }
 }

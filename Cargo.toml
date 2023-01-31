@@ -27,6 +27,8 @@ serde_with = { version = "2.2.0", default-features = false, features = ["macros"
 rand = { version = "0.8.5", default-features = false, features = ["std_rng"] }
 anyhow = { version = "1.0.68", default-features = false, features = ["std"] }
 thiserror = { version = "1.0.38", default-features = false }
+base64 = { version = "0.13", default-features = false, features = ["std"] }
+argon2 = { version = "0.4.1", default-features = false, features = ["std", "rand", "password-hash"] }
 
 [dev-dependencies]
 test_server = { path = "tests/helpers/test_server" }
