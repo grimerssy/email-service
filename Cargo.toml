@@ -29,6 +29,7 @@ anyhow = { version = "1.0.68", default-features = false, features = ["std"] }
 thiserror = { version = "1.0.38", default-features = false }
 base64 = { version = "0.13", default-features = false, features = ["std"] }
 argon2 = { version = "0.4.1", default-features = false, features = ["std", "rand", "password-hash"] }
+urlencoding = { version = "2.1.2", default-features = false }
 
 [dev-dependencies]
 test_server = { path = "tests/helpers/test_server" }

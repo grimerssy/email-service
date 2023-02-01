@@ -49,6 +49,9 @@ impl Server {
         HttpServer::new(move || {
             App::new()
                 .wrap(TracingLogger::default())
+                .route("/", get().to(home))
+                .route("/login", get().to(login_form))
+                .route("/login", post().to(login))
                 .route("/health_check", get().to(health_check))
                 .route("/subscriptions", post().to(subscribe))
                 .route("/subscriptions/confirm", get().to(confirm_subscription))

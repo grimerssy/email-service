@@ -1,3 +1,4 @@
+mod auth;
 pub mod configuration;
 mod domain;
 mod email_client;
