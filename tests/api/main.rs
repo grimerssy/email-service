@@ -1,10 +1,14 @@
 mod health_check;
+mod login;
 mod newsletter;
 mod subscriptions;
 
-use argon2::{password_hash::SaltString, Algorithm, Argon2, Params, PasswordHasher, Version};
+use argon2::{
+    password_hash::SaltString, Algorithm, Argon2, Params, PasswordHasher,
+    Version,
+};
 use async_trait::async_trait;
-use reqwest::{Response, Url};
+use reqwest::{header::LOCATION, Response, Url};
 use std::collections::HashMap;
 use test_server::TestServer;
 use uuid::Uuid;
@@ -15,12 +19,27 @@ static FAILED_TO_EXECUTE_REQUEST: &str = "Failed to execute request";
 #[async_trait]
 trait ServerExt {
     async fn get_health_check(&self) -> Response;
+    async fn get_login_html(&self) -> String;
+    async fn post_login(&self, body: &HashMap<&str, &str>) -> Response;
     async fn post_subscriptions(&self, body: &HashMap<&str, &str>) -> Response;
     async fn get_subscriptions_confirm(&self) -> Response;
-    async fn post_newsletters(&self, user: TestUser, body: &serde_json::Value) -> Response;
+    async fn post_newsletters(
+        &self,
+        user: TestUser,
+        body: &serde_json::Value,
+    ) -> Response;
 
-    async fn mock_email_server(&self, response: wiremock::ResponseTemplate, expect: Option<u64>);
+    async fn mock_email_server(
+        &self,
+        response: wiremock::ResponseTemplate,
+        expect: Option<u64>,
+    );
     fn extract_links(&self, email_request: &wiremock::Request) -> Links;
+    fn assert_is_redirect_to(
+        &self,
+        response: &reqwest::Response,
+        location: &str,
+    );
 }
 
 #[async_trait]
@@ -28,6 +47,26 @@ impl ServerExt for TestServer {
     async fn get_health_check(&self) -> Response {
         self.http_client
             .get(self.health_check())
+            .send()
+            .await
+            .expect(FAILED_TO_EXECUTE_REQUEST)
+    }
+
+    async fn get_login_html(&self) -> String {
+        self.http_client
+            .get(self.login())
+            .send()
+            .await
+            .expect(FAILED_TO_EXECUTE_REQUEST)
+            .text()
+            .await
+            .unwrap()
+    }
+
+    async fn post_login(&self, body: &HashMap<&str, &str>) -> Response {
+        self.http_client
+            .post(self.login())
+            .form(body)
             .send()
             .await
             .expect(FAILED_TO_EXECUTE_REQUEST)
@@ -50,7 +89,11 @@ impl ServerExt for TestServer {
             .expect(FAILED_TO_EXECUTE_REQUEST)
     }
 
-    async fn post_newsletters(&self, user: TestUser, body: &serde_json::Value) -> Response {
+    async fn post_newsletters(
+        &self,
+        user: TestUser,
+        body: &serde_json::Value,
+    ) -> Response {
         self.http_client
             .post(self.newsletters())
             .basic_auth(user.username, Some(user.password))
@@ -60,7 +103,11 @@ impl ServerExt for TestServer {
             .expect(FAILED_TO_EXECUTE_REQUEST)
     }
 
-    async fn mock_email_server(&self, response: wiremock::ResponseTemplate, expect: Option<u64>) {
+    async fn mock_email_server(
+        &self,
+        response: wiremock::ResponseTemplate,
+        expect: Option<u64>,
+    ) {
         use wiremock::{
             matchers::{method, path},
             Mock,
@@ -88,16 +135,27 @@ impl ServerExt for TestServer {
             let link = links.first().unwrap().as_str().to_owned();
             Url::parse(&link).unwrap()
         };
-        let body = serde_json::from_slice::<serde_json::Value>(&request.body).unwrap();
+        let body =
+            serde_json::from_slice::<serde_json::Value>(&request.body).unwrap();
         let (text, html) = {
             let mut links = ["Text", "Html"].iter().map(|x| {
-                let mut link = extract_link(body[format!("{x}Body")].as_str().unwrap());
+                let mut link =
+                    extract_link(body[format!("{x}Body")].as_str().unwrap());
                 link.set_port(Some(self.port)).unwrap();
                 link
             });
             (links.next().unwrap(), links.next().unwrap())
         };
         Links { text, html }
+    }
+
+    fn assert_is_redirect_to(
+        &self,
+        response: &reqwest::Response,
+        location: &str,
+    ) {
+        assert_eq!(response.status().as_u16(), 303);
+        assert_eq!(response.headers().get(LOCATION).unwrap(), location);
     }
 }
 
@@ -159,6 +217,7 @@ impl TestUser {
 trait Endpoints {
     fn addr(&self) -> String;
     fn health_check(&self) -> String;
+    fn login(&self) -> String;
     fn subscriptions(&self) -> String;
     fn subscriptions_confirm(&self) -> String;
     fn newsletters(&self) -> String;
@@ -171,6 +230,10 @@ impl Endpoints for TestServer {
 
     fn health_check(&self) -> String {
         format!("{}/health_check", self.addr())
+    }
+
+    fn login(&self) -> String {
+        format!("{}/login", self.addr())
     }
 
     fn subscriptions(&self) -> String {

@@ -1,6 +1,6 @@
 use dotenvy::dotenv;
 use once_cell::sync::Lazy;
-use reqwest::{Client, Url};
+use reqwest::{redirect::Policy, Client, Url};
 use std::time::Duration;
 use wiremock::MockServer;
 pub use zero2prod::DbPool;
@@ -34,15 +34,22 @@ impl TestServer {
         let config = {
             let mut c = Config::init().expect("Failed to initialize config");
             c.application.port = 0;
-            c.database.options.database = db_pool.connect_options().get_database().unwrap().into();
+            c.database.options.database =
+                db_pool.connect_options().get_database().unwrap().into();
             c.email_client.timeout = Duration::from_millis(200);
             c.email_client.base_url = Url::parse(&email_server.uri()).unwrap();
             c
         };
-        let server = Server::build(config.clone()).expect("Failed to run server.");
-        let base_url = config.application.base_url.clone();
+        let server =
+            Server::build(config.clone()).expect("Failed to run server.");
+        let base_url = config.application.base_url;
         let port = server.port();
-        let http_client = Client::new();
+        let http_client = Client::builder()
+            .redirect(Policy::none())
+            .cookie_store(true)
+            .build()
+            .unwrap();
+        #[allow(clippy::let_underscore_future)]
         let _ = tokio::spawn(server.run());
         Self {
             base_url,

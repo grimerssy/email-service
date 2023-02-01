@@ -19,6 +19,8 @@ pub struct Config {
 
 impl Config {
     pub fn init() -> Result<Self, config::ConfigError> {
+        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        std::env::set_var("APP_DATABASE__URL", database_url);
         let base_path = std::env::current_dir().expect("Failed to determine the current directory");
         let config_directory = base_path.join("config");
         let environment: Environment = std::env::var("APP_ENVIRONMENT")
@@ -29,7 +31,6 @@ impl Config {
         config::Config::builder()
             .add_source(config::File::from(config_directory.join("base.yaml")))
             .add_source(config::File::from(config_directory.join(config_file)))
-            .add_source(config::Environment::default().separator("_"))
             .add_source(
                 config::Environment::with_prefix("APP")
                     .prefix_separator("_")

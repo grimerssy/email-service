@@ -1,8 +1,10 @@
 use actix_web::{
+    error::InternalError,
     http::header::LOCATION,
     web::{Data, Form},
-    HttpResponse, ResponseError,
+    HttpResponse,
 };
+use actix_web_flash_messages::FlashMessage;
 use secrecy::Secret;
 use serde::Deserialize;
 
@@ -19,18 +21,6 @@ pub enum LoginError {
     Unexpected(#[from] anyhow::Error),
 }
 
-impl ResponseError for LoginError {
-    fn status_code(&self) -> reqwest::StatusCode {
-        reqwest::StatusCode::SEE_OTHER
-    }
-    fn error_response(&self) -> HttpResponse {
-        let encoded_error = urlencoding::Encoded::new(self.to_string());
-        HttpResponse::build(self.status_code())
-            .insert_header((LOCATION, format!("/login?error={encoded_error}")))
-            .finish()
-    }
-}
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct FormData {
     username: String,
@@ -40,20 +30,34 @@ pub struct FormData {
 #[tracing::instrument(skip_all,
     fields(username=tracing::field::Empty, user_id=tracing::field::Empty)
 )]
-pub async fn login(form: Form<FormData>, pool: Data<DbPool>) -> Result<HttpResponse, LoginError> {
+pub async fn login(
+    form: Form<FormData>,
+    pool: Data<DbPool>,
+) -> Result<HttpResponse, InternalError<LoginError>> {
     let credentials = Credentials {
         username: form.0.username,
         password: form.0.password,
     };
-    tracing::Span::current().record("username", &tracing::field::display(&credentials.username));
-    let user_id = validate_credentials(credentials, &pool)
+    tracing::Span::current()
+        .record("username", &tracing::field::display(&credentials.username));
+    validate_credentials(credentials, &pool)
         .await
-        .map_err(|e| match e {
-            AuthError::InvalidCredentials(_) => LoginError::Auth(e.into()),
-            AuthError::Unexpected(_) => LoginError::Unexpected(e.into()),
-        })?;
-    tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
-    Ok(HttpResponse::SeeOther()
-        .insert_header((LOCATION, "/"))
-        .finish())
+        .map(|user_id| {
+            tracing::Span::current()
+                .record("user_id", &tracing::field::display(&user_id));
+            HttpResponse::SeeOther()
+                .insert_header((LOCATION, "/"))
+                .finish()
+        })
+        .map_err(|e| {
+            let e = match e {
+                AuthError::InvalidCredentials(_) => LoginError::Auth(e.into()),
+                AuthError::Unexpected(_) => LoginError::Unexpected(e.into()),
+            };
+            FlashMessage::error(e.to_string()).send();
+            let response = HttpResponse::SeeOther()
+                .insert_header((LOCATION, "/login"))
+                .finish();
+            InternalError::from_response(e, response)
+        })
 }
