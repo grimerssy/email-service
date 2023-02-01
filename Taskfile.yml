@@ -3,9 +3,12 @@ version: 3
 dotenv: [.env]
 
 includes:
-  database:
-    taskfile: taskfiles/Database.yml
-    aliases: [db]
+  run:
+    taskfile: taskfiles/Run.yml
+    aliases: [r]
   test:
     taskfile: taskfiles/Test.yml
     aliases: [t]
+  database:
+    taskfile: taskfiles/Database.yml
+    aliases: [db]

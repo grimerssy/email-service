@@ -1,0 +1,7 @@
+version: 3
+
+tasks:
+  default:
+    desc: Runs the project
+    cmds:
+      - cargo run | bunyan
