@@ -68,7 +68,8 @@ pub async fn subscribe(
         .begin()
         .await
         .context("Failed to acquire connection from the pool")?;
-    let subscriber_id = insert_subscriber(&mut transaction, &subscriber).await?;
+    let subscriber_id =
+        insert_subscriber(&mut transaction, &subscriber).await?;
     let subscription_token = generate_subscription_token();
     store_token(&mut transaction, &subscriber_id, &subscription_token).await?;
     transaction

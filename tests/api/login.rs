@@ -4,7 +4,10 @@ use test_server::TestServer;
 
 #[macros::test]
 async fn an_error_flash_message_is_set_on_failure(server: TestServer) {
-    let body = hashmap!("username" => "random-username", "password" => "random-password");
+    let body = hashmap!(
+        "username" => "random-username",
+        "password" => "random-password"
+    );
     let response = server.post_login(&body).await;
     server.assert_is_redirect_to(&response, "/login");
 

@@ -1,4 +1,7 @@
-use crate::{Endpoints, Links, ServerExt, TestServer, TestUser, FAILED_TO_EXECUTE_REQUEST};
+use crate::{
+    Endpoints, Links, ServerExt, TestServer, TestUser,
+    FAILED_TO_EXECUTE_REQUEST,
+};
 use hashmap_macro::hashmap;
 use uuid::Uuid;
 use wiremock::{
@@ -7,7 +10,9 @@ use wiremock::{
 };
 
 #[macros::test]
-async fn newsletters_are_delievered_to_confirmed_subscribers(server: TestServer) {
+async fn newsletters_are_delievered_to_confirmed_subscribers(
+    server: TestServer,
+) {
     create_confirmed_subscriber(&server).await;
     server
         .mock_email_server(ResponseTemplate::new(200), Some(1))
@@ -18,7 +23,9 @@ async fn newsletters_are_delievered_to_confirmed_subscribers(server: TestServer)
 }
 
 #[macros::test]
-async fn newsletters_are_not_delievered_to_unconfirmed_subscribers(server: TestServer) {
+async fn newsletters_are_not_delievered_to_unconfirmed_subscribers(
+    server: TestServer,
+) {
     create_unconfirmed_subscriber(&server).await;
     server
         .mock_email_server(ResponseTemplate::new(200), Some(0))
@@ -91,7 +98,8 @@ async fn post_newsletters_returns_400_for_invalid_data(server: TestServer) {
         ),
     ];
     for (invalid_body, error_message) in test_cases {
-        let response = server.post_newsletters(user.clone(), &invalid_body).await;
+        let response =
+            server.post_newsletters(user.clone(), &invalid_body).await;
         assert_eq!(
             response.status().as_u16(),
             400,

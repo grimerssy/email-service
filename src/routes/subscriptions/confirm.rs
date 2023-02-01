@@ -29,14 +29,18 @@ impl ResponseError for ConfirmError {
     }
 }
 
-#[tracing::instrument(name = "Confirm a pending subscriber", skip(params, pool))]
+#[tracing::instrument(
+    name = "Confirm a pending subscriber",
+    skip(params, pool)
+)]
 pub async fn confirm_subscription(
     params: Query<Parameters>,
     pool: Data<DbPool>,
 ) -> Result<HttpResponse, ConfirmError> {
-    let subscriber_id = get_subscriber_id_from_token(&params.subscription_token, &pool)
-        .await?
-        .ok_or(ConfirmError::UnknownUser)?;
+    let subscriber_id =
+        get_subscriber_id_from_token(&params.subscription_token, &pool)
+            .await?
+            .ok_or(ConfirmError::UnknownUser)?;
     confirm_subscriber(&subscriber_id, &pool)
         .await
         .map(|_| HttpResponse::Ok().finish())
@@ -64,8 +68,14 @@ async fn get_subscriber_id_from_token(
     .map_err(anyhow::Error::from)
 }
 
-#[tracing::instrument(name = "Confirming a pending subscriber", skip(subscriber_id, pool))]
-async fn confirm_subscriber(subscriber_id: &Uuid, pool: &DbPool) -> anyhow::Result<()> {
+#[tracing::instrument(
+    name = "Confirming a pending subscriber",
+    skip(subscriber_id, pool)
+)]
+async fn confirm_subscriber(
+    subscriber_id: &Uuid,
+    pool: &DbPool,
+) -> anyhow::Result<()> {
     sqlx::query!(
         r#"
         update subscriptions

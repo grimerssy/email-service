@@ -19,9 +19,11 @@ pub struct Config {
 
 impl Config {
     pub fn init() -> Result<Self, config::ConfigError> {
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let database_url =
+            std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
         std::env::set_var("APP_DATABASE__URL", database_url);
-        let base_path = std::env::current_dir().expect("Failed to determine the current directory");
+        let base_path = std::env::current_dir()
+            .expect("Failed to determine the current directory");
         let config_directory = base_path.join("config");
         let environment: Environment = std::env::var("APP_ENVIRONMENT")
             .unwrap_or_else(|_| "local".into())

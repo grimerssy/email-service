@@ -1,4 +1,6 @@
-use crate::{configuration::EmailClientConfig as Config, domain::SubscriberEmail};
+use crate::{
+    configuration::EmailClientConfig as Config, domain::SubscriberEmail,
+};
 use reqwest::Url;
 use secrecy::{ExposeSecret, Secret};
 use serde::Serialize;
@@ -123,7 +125,8 @@ mod tests {
             },
             Fake, Faker,
         };
-        let email = || SubscriberEmail::try_from(SafeEmail().fake::<String>()).unwrap();
+        let email =
+            || SubscriberEmail::try_from(SafeEmail().fake::<String>()).unwrap();
         let subject = Sentence(1..2).fake::<String>();
         let content = Paragraph(1..10).fake::<String>();
         let config = Config {

@@ -12,7 +12,8 @@ impl std::fmt::Display for SubscriberName {
 impl TryFrom<String> for SubscriberName {
     type Error = String;
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let forbidden_characters = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
+        let forbidden_characters =
+            ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
         if value.trim().is_empty()
             || value.graphemes(true).count() > 256
             || value.chars().any(|c| forbidden_characters.contains(&c))

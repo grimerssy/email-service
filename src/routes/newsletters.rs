@@ -45,7 +45,8 @@ impl ResponseError for PublishError {
         match self {
             Self::Auth(_) => {
                 let mut response = HttpResponse::new(self.status_code());
-                let header_value = HeaderValue::from_str(r#"Basic realm="publish""#).unwrap();
+                let header_value =
+                    HeaderValue::from_str(r#"Basic realm="publish""#).unwrap();
                 response
                     .headers_mut()
                     .insert(WWW_AUTHENTICATE, header_value);
@@ -66,13 +67,17 @@ pub async fn publish_newsletter(
     let creds = basic_auth(request.headers())
         .await
         .map_err(PublishError::Auth)?;
-    let user_id = validate_credentials(creds, &pool)
-        .await
-        .map_err(|e| match e {
-            AuthError::InvalidCredentials(_) => PublishError::Auth(e.into()),
-            AuthError::Unexpected(_) => PublishError::Unexpected(e.into()),
-        })?;
-    tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
+    let user_id =
+        validate_credentials(creds, &pool)
+            .await
+            .map_err(|e| match e {
+                AuthError::InvalidCredentials(_) => {
+                    PublishError::Auth(e.into())
+                }
+                AuthError::Unexpected(_) => PublishError::Unexpected(e.into()),
+            })?;
+    tracing::Span::current()
+        .record("user_id", &tracing::field::display(&user_id));
     let subscribers = get_confirmed_subscribers(&pool).await?;
     for subscriber in subscribers {
         let email = match subscriber {
@@ -87,20 +92,32 @@ pub async fn publish_newsletter(
             }
         };
         email_client
-            .send_email(&email, &body.title, &body.content.text, &body.content.html)
+            .send_email(
+                &email,
+                &body.title,
+                &body.content.text,
+                &body.content.html,
+            )
             .await
-            .with_context(|| format!("Failed to send newsletter issue to {}", &email))?;
+            .with_context(|| {
+                format!("Failed to send newsletter issue to {}", &email)
+            })?;
     }
     Ok(HttpResponse::Ok().finish())
 }
 
-#[tracing::instrument(name = "Extracting auth credentials from header", skip_all)]
+#[tracing::instrument(
+    name = "Extracting auth credentials from header",
+    skip_all
+)]
 async fn basic_auth(headers: &HeaderMap) -> anyhow::Result<Credentials> {
     let auth_header = headers
         .get(AUTHORIZATION)
         .with_context(|| format!("The '{AUTHORIZATION}' header was missing"))?
         .to_str()
-        .with_context(|| format!("The '{AUTHORIZATION}' header was not a valid UTF8 string"))?
+        .with_context(|| {
+            format!("The '{AUTHORIZATION}' header was not a valid UTF8 string")
+        })?
         .strip_prefix("Basic ")
         .context("The authorization scheme was not 'Basic'")?;
     let decoded = base64::decode_config(auth_header, base64::STANDARD)

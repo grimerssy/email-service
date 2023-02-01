@@ -33,7 +33,8 @@ impl<'de> Deserialize<'de> for SubscriberEmail {
     where
         D: serde::Deserializer<'de>,
     {
-        Self::try_from(String::deserialize(deserializer)?).map_err(de::Error::custom)
+        Self::try_from(String::deserialize(deserializer)?)
+            .map_err(de::Error::custom)
     }
 }
 
@@ -53,7 +54,9 @@ mod tests {
     }
 
     #[quickcheck_macros::quickcheck]
-    fn valid_email_are_parsed_successfully(valid_email: ValidEmailFixture) -> bool {
+    fn valid_email_are_parsed_successfully(
+        valid_email: ValidEmailFixture,
+    ) -> bool {
         SubscriberEmail::try_from(valid_email.0).is_ok()
     }
 
