@@ -1,5 +1,4 @@
-application:
-  port: 8080
+port: 8080
 
 email_client:
   base_url: http://localhost

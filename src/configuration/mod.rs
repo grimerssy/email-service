@@ -12,6 +12,7 @@ use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Config {
+    #[serde(flatten)]
     pub application: ApplicationConfig,
     pub database: DatabaseConfig,
     pub email_client: EmailClientConfig,

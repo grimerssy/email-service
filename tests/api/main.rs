@@ -1,3 +1,4 @@
+mod admin;
 mod health_check;
 mod login;
 mod newsletter;
@@ -19,8 +20,13 @@ static FAILED_TO_EXECUTE_REQUEST: &str = "Failed to execute request";
 #[async_trait]
 trait ServerExt {
     async fn get_health_check(&self) -> Response;
-    async fn get_login_html(&self) -> String;
+    async fn get_login(&self) -> Response;
     async fn post_login(&self, body: &HashMap<&str, &str>) -> Response;
+    async fn post_logout(&self) -> Response;
+    async fn get_admin_dashboard(&self) -> Response;
+    async fn get_admin_password(&self) -> Response;
+    async fn post_admin_password(&self, body: &HashMap<&str, &str>)
+        -> Response;
     async fn post_subscriptions(&self, body: &HashMap<&str, &str>) -> Response;
     async fn get_subscriptions_confirm(&self) -> Response;
     async fn post_newsletters(
@@ -52,20 +58,53 @@ impl ServerExt for TestServer {
             .expect(FAILED_TO_EXECUTE_REQUEST)
     }
 
-    async fn get_login_html(&self) -> String {
+    async fn get_login(&self) -> Response {
         self.http_client
             .get(self.login())
             .send()
             .await
             .expect(FAILED_TO_EXECUTE_REQUEST)
-            .text()
-            .await
-            .unwrap()
     }
 
     async fn post_login(&self, body: &HashMap<&str, &str>) -> Response {
         self.http_client
             .post(self.login())
+            .form(body)
+            .send()
+            .await
+            .expect(FAILED_TO_EXECUTE_REQUEST)
+    }
+
+    async fn post_logout(&self) -> Response {
+        self.http_client
+            .post(self.logout())
+            .send()
+            .await
+            .expect(FAILED_TO_EXECUTE_REQUEST)
+    }
+
+    async fn get_admin_dashboard(&self) -> Response {
+        self.http_client
+            .get(self.admin_dashboard())
+            .send()
+            .await
+            .expect(FAILED_TO_EXECUTE_REQUEST)
+    }
+
+    async fn get_admin_password(&self) -> Response {
+        self.http_client
+            .get(self.admin_password())
+            .send()
+            .await
+            .expect(FAILED_TO_EXECUTE_REQUEST)
+    }
+
+    async fn post_admin_password(
+        &self,
+        body: &HashMap<&str, &str>,
+    ) -> Response {
+        self.http_client
+            .post(self.admin_password())
             .form(body)
             .send()
             .await
@@ -218,6 +257,10 @@ trait Endpoints {
     fn addr(&self) -> String;
     fn health_check(&self) -> String;
     fn login(&self) -> String;
+    fn logout(&self) -> String;
+    fn admin(&self) -> String;
+    fn admin_dashboard(&self) -> String;
+    fn admin_password(&self) -> String;
     fn subscriptions(&self) -> String;
     fn subscriptions_confirm(&self) -> String;
     fn newsletters(&self) -> String;
@@ -234,6 +277,22 @@ impl Endpoints for TestServer {
 
     fn login(&self) -> String {
         format!("{}/login", self.addr())
+    }
+
+    fn logout(&self) -> String {
+        format!("{}/logout", self.addr())
+    }
+
+    fn admin(&self) -> String {
+        format!("{}/admin", self.addr())
+    }
+
+    fn admin_dashboard(&self) -> String {
+        format!("{}/dashboard", self.admin())
+    }
+
+    fn admin_password(&self) -> String {
+        format!("{}/password", self.admin())
     }
 
     fn subscriptions(&self) -> String {

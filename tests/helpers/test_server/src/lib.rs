@@ -40,8 +40,9 @@ impl TestServer {
             c.email_client.base_url = Url::parse(&email_server.uri()).unwrap();
             c
         };
-        let server =
-            Server::build(config.clone()).expect("Failed to run server.");
+        let server = Server::build(config.clone())
+            .await
+            .expect("Failed to run server");
         let base_url = config.application.base_url;
         let port = server.port();
         let http_client = Client::builder()

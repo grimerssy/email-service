@@ -2,6 +2,7 @@ version: 3
 
 vars:
   DATABASE_URL_PATTERN: postgres:\/\/(.+):(.+)@(.+):(.+)\/(.+)
+  REDIS_URL_PATTERN: redis:\/\/(.+):(.+)
 
 tasks:
   prelude:
@@ -11,6 +12,8 @@ tasks:
         msg: Could not find .env file in the current directory
       - sh: "[ $DATABASE_URL ]"
         msg: DATABASE_URL must be set
+      - sh: "[ $APP_REDIS_URL ]"
+        msg: APP_REDIS_URL must be set
 
   up:
     desc: Spins up a new db instance and runs migrations
@@ -19,12 +22,14 @@ tasks:
       - task: migrate
 
   down:
-    desc: Drops the database
+    desc: Drops databases
     cmds:
       - task: prelude
       - |
         DB_NAME=$(echo $DATABASE_URL | sed -E 's/{{.DATABASE_URL_PATTERN}}/\5/')
+        REDIS_PORT=$(echo $APP_REDIS_URL | sed -E 's/{{.REDIS_URL_PATTERN}}/\2/')
         docker rm -f "${DB_NAME}_db"
+        docker rm -f "redis_${REDIS_PORT}"
 
   shell:
     desc: Opens up an interactive shell for configured database
@@ -33,7 +38,7 @@ tasks:
       - psql $DATABASE_URL
 
   create:
-    desc: Creates a postgres container
+    desc: Creates database containers
     cmds:
       - task: prelude
       - |
@@ -50,6 +55,13 @@ tasks:
           -p "$DB_PORT:5432" \
           postgres \
           -N 1000
+
+        REDIS_PORT=$(echo $APP_REDIS_URL | sed -E 's/{{.REDIS_URL_PATTERN}}/\2/')
+        docker run \
+          -d \
+          --name "redis_${REDIS_PORT}" \
+          -p "$REDIS_PORT:6379" \
+          redis:6
 
   migrate:
     desc: Applies migrations to the database
