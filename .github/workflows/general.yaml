@@ -12,7 +12,8 @@ on:
 env:
   CARGO_TERM_COLOR: always
   DATABASE_URL: postgres://postgres:password@127.0.0.1:5432/postgres
-  APP_APPLICATION__HMAC_SECRET: asdfasdfasdfasdfasdfasdfasdfasdfasdfaasdfasdfasdfasdfasdfasdfsdf
+  APP_REDIS_URL: redis://127.0.0.1:6379
+  APP_HMAC_SECRET: asdfasdfasdfasdfasdfasdfasdfasdfasdfaasdfasdfasdfasdfasdfasdfsdf
 
 jobs:
   test:
@@ -27,6 +28,10 @@ jobs:
           POSTGRES_DB: postgres
         ports:
           - 5432:5432
+      redis:
+        image: redis:6
+        ports:
+          - 6379:6379
     env:
       SQLX_VERSION: 0.6.2
       SQLX_FEATURES: "rustls,postgres"
@@ -108,6 +113,10 @@ jobs:
           POSTGRES_DB: postgres
         ports:
           - 5432:5432
+      redis:
+        image: redis:6
+        ports:
+          - 6379:6379
     env:
       SQLX_VERSION: 0.6.2
       SQLX_FEATURES: "rustls,postgres"
