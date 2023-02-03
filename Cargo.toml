@@ -34,6 +34,7 @@ urlencoding = { version = "2.1.2", default-features = false }
 htmlescape = { version = "0.3.1", default-features = false }
 actix-web-flash-messages = { version = "0.4.2", default-features = false, features = ["cookies"] }
 actix-session = { version = "0.7.2", default-features = false, features = ["redis-rs-tls-session"] }
+actix-web-lab = { version = "0.18.9", default-features = false }
 
 [dev-dependencies]
 test_server = { path = "tests/helpers/test_server" }

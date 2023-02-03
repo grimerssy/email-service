@@ -1,9 +1,10 @@
+use std::collections::HashMap;
+
 use crate::{
     Endpoints, Links, ServerExt, TestServer, TestUser,
     FAILED_TO_EXECUTE_REQUEST,
 };
 use hashmap_macro::hashmap;
-use uuid::Uuid;
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
@@ -18,7 +19,12 @@ async fn newsletters_are_delievered_to_confirmed_subscribers(
         .mock_email_server(ResponseTemplate::new(200), Some(1))
         .await;
     let user = TestUser::stored(&server.db_pool).await;
-    let response = server.post_newsletters(user, &body()).await;
+    let body = hashmap!(
+        "username" => user.username.as_str(),
+        "password" => user.password.as_str(),
+    );
+    server.post_login(&body).await;
+    let response = server.post_admin_newsletters(&newsletter_body()).await;
     assert_eq!(response.status().as_u16(), 200);
 }
 
@@ -31,7 +37,12 @@ async fn newsletters_are_not_delievered_to_unconfirmed_subscribers(
         .mock_email_server(ResponseTemplate::new(200), Some(0))
         .await;
     let user = TestUser::stored(&server.db_pool).await;
-    let response = server.post_newsletters(user, &body()).await;
+    let body = hashmap!(
+        "username" => user.username.as_str(),
+        "password" => user.password.as_str(),
+    );
+    server.post_login(&body).await;
+    let response = server.post_admin_newsletters(&newsletter_body()).await;
     assert_eq!(response.status().as_u16(), 200);
 }
 
@@ -39,67 +50,52 @@ async fn newsletters_are_not_delievered_to_unconfirmed_subscribers(
 async fn post_with_no_authorization_header_is_rejected(server: TestServer) {
     let response = server
         .http_client
-        .post(server.newsletters())
-        .json(&body())
+        .post(server.admin_newsletters())
+        .json(&newsletter_body())
         .send()
         .await
         .expect(FAILED_TO_EXECUTE_REQUEST);
-    assert_eq!(response.status().as_u16(), 401);
-    assert_eq!(
-        r#"Basic realm="publish""#,
-        response.headers()["www-authenticate"]
-    );
+    assert_eq!(response.status().as_u16(), 303);
 }
 
 #[macros::test]
 async fn nonexistent_users_are_rejected(server: TestServer) {
     let user = TestUser::new();
-    let response = server.post_newsletters(user, &body()).await;
-    assert_eq!(response.status().as_u16(), 401);
-    assert_eq!(
-        r#"Basic realm="publish""#,
-        response.headers()["www-authenticate"]
+    let body = hashmap!(
+        "username" => user.username.as_str(),
+        "password" => user.password.as_str(),
     );
+    server.post_login(&body).await;
+    let response = server.post_admin_newsletters(&newsletter_body()).await;
+    assert_eq!(response.status().as_u16(), 303);
 }
 
 #[macros::test]
-async fn invalid_passwords_are_rejected(server: TestServer) {
-    let user = {
-        let mut user = TestUser::stored(&server.db_pool).await;
-        let invalid_password = Uuid::new_v4().to_string();
-        assert_ne!(user.password, invalid_password);
-        user.password = invalid_password;
-        user
-    };
-    let response = server.post_newsletters(user, &body()).await;
-    assert_eq!(response.status().as_u16(), 401);
-    assert_eq!(
-        r#"Basic realm="publish""#,
-        response.headers()["www-authenticate"]
-    );
+async fn unauthenticated_users_are_rejected(server: TestServer) {
+    let response = server.post_admin_newsletters(&newsletter_body()).await;
+    assert_eq!(response.status().as_u16(), 303);
 }
 
 #[macros::test]
 async fn post_newsletters_returns_400_for_invalid_data(server: TestServer) {
     let user = TestUser::stored(&server.db_pool).await;
+    let body = hashmap!(
+        "username" => user.username.as_str(),
+        "password" => user.password.as_str(),
+    );
+    server.post_login(&body).await;
     let test_cases = vec![
         (
-            serde_json::json!({
-            "content": {
-                "text": "Newsletter body",
-                "html": "<p>Newsletter body</p>",
-            }
-            }),
+            hashmap!(
+                "textContent" => "Newsletter body",
+                "htmlContent" => "<p>Newsletter body</p>",
+            ),
             "missing title",
         ),
-        (
-            serde_json::json!({"title": "New newsletter!"}),
-            "missing content",
-        ),
+        (hashmap!("title" => "New newsletter!"), "missing content"),
     ];
     for (invalid_body, error_message) in test_cases {
-        let response =
-            server.post_newsletters(user.clone(), &invalid_body).await;
+        let response = server.post_admin_newsletters(&invalid_body).await;
         assert_eq!(
             response.status().as_u16(),
             400,
@@ -143,12 +139,10 @@ async fn create_confirmed_subscriber(server: &TestServer) {
         .unwrap();
 }
 
-fn body() -> serde_json::Value {
-    serde_json::json!({
-             "title": "Newsletter title",
-             "content": {
-                 "text": "Newsletter body as plain text",
-                 "html": "<p>Newsletter body as HTML</p>",
-             }
-    })
+fn newsletter_body() -> HashMap<&'static str, &'static str> {
+    hashmap!(
+             "title" => "Newsletter title",
+             "textContent" => "Newsletter body as plain text",
+             "htmlContent" => "<p>Newsletter body as HTML</p>",
+    )
 }

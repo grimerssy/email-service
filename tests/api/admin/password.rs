@@ -27,7 +27,7 @@ async fn change_password_works(server: TestServer) {
     let html_page = server.get_admin_password().await.text().await.unwrap();
     assert!(html_page.contains("<p><i>Your password has been changed.</i></p>"));
 
-    let response = server.post_logout().await;
+    let response = server.post_admin_logout().await;
     server.assert_is_redirect_to(&response, "/login");
 
     let html_page = server.get_login().await.text().await.unwrap();

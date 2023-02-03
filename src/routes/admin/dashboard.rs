@@ -1,21 +1,18 @@
-use crate::{
-    utils::{e500, see_other},
-    Session,
+use crate::{auth::UserId, utils::e500, DbPool};
+use actix_web::{
+    http::header::ContentType,
+    web::{Data, ReqData},
+    HttpResponse,
 };
-use actix_web::{http::header::ContentType, web::Data, HttpResponse};
 use anyhow::Context;
 use uuid::Uuid;
 
-use crate::DbPool;
-
 pub async fn admin_dashboard(
-    session: Session,
+    user_id: ReqData<UserId>,
     pool: Data<DbPool>,
 ) -> actix_web::Result<HttpResponse> {
-    let username = match session.get_user_id()? {
-        Some(user_id) => get_username(user_id, &pool).await.map_err(e500)?,
-        None => return Ok(see_other("/login")),
-    };
+    let user_id = *user_id.into_inner();
+    let username = get_username(user_id, &pool).await.map_err(e500)?;
     Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
         .body(format!(
@@ -30,6 +27,7 @@ pub async fn admin_dashboard(
                 <p>Welcome, {username}!</p>
                 <p>Available actions:</p>
                 <ol>
+                    <li><a href="/admin/newsletters">Post a newsletter</a></li>
                     <li><a href="/admin/password">Change password</a></li>
                     <li>
                         <form name="logoutForm" action="/admin/logout" method="post">

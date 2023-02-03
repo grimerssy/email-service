@@ -33,8 +33,8 @@ pub async fn validate_credentials(
                     None,
                     Secret::new(
                         "$argon2id$v=19$m=15000,t=2,p=1$\
-        gZiV/M1gPc22ElAH/Jh1Hw$\
-        CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno"
+                          gZiV/M1gPc22ElAH/Jh1Hw$\
+                          CWOrkoo7oJBQ/iyh7uJ0LO2aLEfrHwTWllSAxT0zRno"
                             .to_string(),
                     ),
                 )

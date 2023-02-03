@@ -1,12 +1,12 @@
 use crate::{
-    auth::{self, validate_credentials, AuthError, Credentials},
+    auth::{self, validate_credentials, AuthError, Credentials, UserId},
     routes::get_username,
     utils::{e500, see_other},
-    DbPool, Session,
+    DbPool,
 };
 
 use actix_web::{
-    web::{Data, Form},
+    web::{Data, Form, ReqData},
     HttpResponse,
 };
 use actix_web_flash_messages::FlashMessage;
@@ -21,14 +21,11 @@ pub struct FormData {
 }
 
 pub async fn change_password(
-    session: Session,
+    user_id: ReqData<UserId>,
     form: Form<FormData>,
     pool: Data<DbPool>,
 ) -> actix_web::Result<HttpResponse> {
-    let user_id = match session.get_user_id()? {
-        Some(user_id) => user_id,
-        None => return Ok(see_other("/login")),
-    };
+    let user_id = *user_id.into_inner();
     if form.new_password.expose_secret()
         != form.new_password_check.expose_secret()
     {

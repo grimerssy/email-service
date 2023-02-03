@@ -1,14 +1,17 @@
-use crate::{routes::*, Config, DbPool, EmailClient};
+use crate::{
+    auth::reject_anonynous_users, routes::*, Config, DbPool, EmailClient,
+};
 use actix_session::{storage::RedisSessionStore, SessionMiddleware};
 use actix_web::{
     cookie::Key,
     dev::Server as ActixServer,
-    web::{get, post, Data},
+    web::{self, get, post, Data},
     App, HttpServer,
 };
 use actix_web_flash_messages::{
     storage::CookieMessageStore, FlashMessagesFramework,
 };
+use actix_web_lab::middleware::from_fn;
 use secrecy::{ExposeSecret, Secret};
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
@@ -82,13 +85,21 @@ impl Server {
                 .route("/health_check", get().to(health_check))
                 .route("/login", get().to(login_form))
                 .route("/login", post().to(login))
-                .route("/logout", post().to(logout))
-                .route("/admin/dashboard", get().to(admin_dashboard))
-                .route("/admin/password", post().to(change_password))
-                .route("/admin/password", get().to(change_password_form))
+                .service(
+                    web::scope("/admin")
+                        .wrap(from_fn(reject_anonynous_users))
+                        .route("/logout", post().to(logout))
+                        .route("/dashboard", get().to(admin_dashboard))
+                        .route("/password", post().to(change_password))
+                        .route("/password", get().to(change_password_form))
+                        .route(
+                            "/newsletters",
+                            get().to(publish_newsletter_form),
+                        )
+                        .route("/newsletters", post().to(publish_newsletter)),
+                )
                 .route("/subscriptions", post().to(subscribe))
                 .route("/subscriptions/confirm", get().to(confirm_subscription))
-                .route("/newsletters", post().to(publish_newsletter))
                 .app_data(db_pool.clone())
                 .app_data(email_client.clone())
                 .app_data(base_url.clone())

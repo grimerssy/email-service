@@ -22,17 +22,16 @@ trait ServerExt {
     async fn get_health_check(&self) -> Response;
     async fn get_login(&self) -> Response;
     async fn post_login(&self, body: &HashMap<&str, &str>) -> Response;
-    async fn post_logout(&self) -> Response;
+    async fn post_admin_logout(&self) -> Response;
     async fn get_admin_dashboard(&self) -> Response;
     async fn get_admin_password(&self) -> Response;
     async fn post_admin_password(&self, body: &HashMap<&str, &str>)
         -> Response;
     async fn post_subscriptions(&self, body: &HashMap<&str, &str>) -> Response;
     async fn get_subscriptions_confirm(&self) -> Response;
-    async fn post_newsletters(
+    async fn post_admin_newsletters(
         &self,
-        user: TestUser,
-        body: &serde_json::Value,
+        body: &HashMap<&str, &str>,
     ) -> Response;
 
     async fn mock_email_server(
@@ -75,9 +74,9 @@ impl ServerExt for TestServer {
             .expect(FAILED_TO_EXECUTE_REQUEST)
     }
 
-    async fn post_logout(&self) -> Response {
+    async fn post_admin_logout(&self) -> Response {
         self.http_client
-            .post(self.logout())
+            .post(self.admin_logout())
             .send()
             .await
             .expect(FAILED_TO_EXECUTE_REQUEST)
@@ -128,15 +127,13 @@ impl ServerExt for TestServer {
             .expect(FAILED_TO_EXECUTE_REQUEST)
     }
 
-    async fn post_newsletters(
+    async fn post_admin_newsletters(
         &self,
-        user: TestUser,
-        body: &serde_json::Value,
+        body: &HashMap<&str, &str>,
     ) -> Response {
         self.http_client
-            .post(self.newsletters())
-            .basic_auth(user.username, Some(user.password))
-            .json(body)
+            .post(self.admin_newsletters())
+            .form(body)
             .send()
             .await
             .expect(FAILED_TO_EXECUTE_REQUEST)
@@ -257,13 +254,13 @@ trait Endpoints {
     fn addr(&self) -> String;
     fn health_check(&self) -> String;
     fn login(&self) -> String;
-    fn logout(&self) -> String;
+    fn admin_logout(&self) -> String;
     fn admin(&self) -> String;
     fn admin_dashboard(&self) -> String;
     fn admin_password(&self) -> String;
     fn subscriptions(&self) -> String;
     fn subscriptions_confirm(&self) -> String;
-    fn newsletters(&self) -> String;
+    fn admin_newsletters(&self) -> String;
 }
 
 impl Endpoints for TestServer {
@@ -279,8 +276,8 @@ impl Endpoints for TestServer {
         format!("{}/login", self.addr())
     }
 
-    fn logout(&self) -> String {
-        format!("{}/logout", self.addr())
+    fn admin_logout(&self) -> String {
+        format!("{}/logout", self.admin())
     }
 
     fn admin(&self) -> String {
@@ -303,7 +300,7 @@ impl Endpoints for TestServer {
         format!("{}/confirm", self.subscriptions())
     }
 
-    fn newsletters(&self) -> String {
-        format!("{}/newsletters", self.addr())
+    fn admin_newsletters(&self) -> String {
+        format!("{}/newsletters", self.admin())
     }
 }

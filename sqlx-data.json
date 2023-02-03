@@ -1,5 +1,18 @@
 {
   "db": "PostgreSQL",
+  "2e696f5bbc81c3c474a6747c363e82cbb02483e83e3641fd799fa18f7792af7c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        update users\n        set password_hash = $1\n        where user_id = $2;\n        "
+  },
   "3af361c918f0538fca989700d831054387f283b9b6c1c7e53d2ca126f538c1cf": {
     "describe": {
       "columns": [],
@@ -77,6 +90,26 @@
       }
     },
     "query": "\n        insert into subscription_tokens (subscription_token, subscriber_id)\n        values ($1, $2);\n        "
+  },
+  "714f501da476c468bf8fa63a5093ab9d52df92743421df2fee8563b7a1941c29": {
+    "describe": {
+      "columns": [
+        {
+          "name": "username",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        select username\n        from users\n        where user_id = $1\n        "
   },
   "8915a67dd5d322cd44bc9fdc7c9b7caace8e085edb25bfa3ae37f6dc90bd0af4": {
     "describe": {

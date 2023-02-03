@@ -22,7 +22,7 @@ async fn logout_clears_session_state(server: TestServer) {
     let html_page = server.get_admin_dashboard().await.text().await.unwrap();
     assert!(html_page.contains(&format!("Welcome, {}", &user.username)));
 
-    let response = server.post_logout().await;
+    let response = server.post_admin_logout().await;
     server.assert_is_redirect_to(&response, "/login");
 
     let html_page = server.get_login().await.text().await.unwrap();
