@@ -11,7 +11,6 @@ async fn change_password_works(server: TestServer) {
         "username" => user.username.as_str(),
         "password" => user.password.as_str(),
     );
-    tracing::error!("{body:?}");
     let response = server.post_login(&body).await;
     server.assert_is_redirect_to(&response, "/admin/dashboard");
 

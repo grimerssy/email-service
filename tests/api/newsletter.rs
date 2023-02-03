@@ -25,7 +25,7 @@ async fn newsletters_are_delievered_to_confirmed_subscribers(
     );
     server.post_login(&body).await;
     let response = server.post_admin_newsletters(&newsletter_body()).await;
-    assert_eq!(response.status().as_u16(), 200);
+    server.assert_is_redirect_to(&response, "/admin/newsletters");
 }
 
 #[macros::test]
@@ -43,7 +43,7 @@ async fn newsletters_are_not_delievered_to_unconfirmed_subscribers(
     );
     server.post_login(&body).await;
     let response = server.post_admin_newsletters(&newsletter_body()).await;
-    assert_eq!(response.status().as_u16(), 200);
+    server.assert_is_redirect_to(&response, "/admin/newsletters");
 }
 
 #[macros::test]
