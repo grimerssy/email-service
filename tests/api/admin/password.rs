@@ -7,11 +7,7 @@ use crate::{ServerExt, TestUser};
 #[macros::test]
 async fn change_password_works(server: TestServer) {
     let mut user = TestUser::stored(&server.db_pool).await;
-    let body = hashmap!(
-        "username" => user.username.as_str(),
-        "password" => user.password.as_str(),
-    );
-    let response = server.post_login(&body).await;
+    let response = user.login(&server).await;
     server.assert_is_redirect_to(&response, "/admin/dashboard");
 
     let new_password = Uuid::new_v4().to_string();
@@ -35,11 +31,7 @@ async fn change_password_works(server: TestServer) {
     );
 
     user.password = new_password;
-    let body = hashmap!(
-        "username" => user.username.as_str(),
-        "password" => user.password.as_str(),
-    );
-    let response = server.post_login(&body).await;
+    let response = user.login(&server).await;
     server.assert_is_redirect_to(&response, "/admin/dashboard");
 }
 
@@ -64,11 +56,7 @@ async fn unauthenticated_users_can_not_change_password(server: TestServer) {
 #[macros::test]
 async fn current_password_must_be_valid(server: TestServer) {
     let user = TestUser::stored(&server.db_pool).await;
-    let body = hashmap!(
-        "username" => user.username.as_str(),
-        "password" => user.password.as_str(),
-    );
-    server.post_login(&body).await;
+    user.login(&server).await;
 
     let wrong_password = Uuid::new_v4().to_string();
     let new_password = Uuid::new_v4().to_string();
@@ -89,11 +77,7 @@ async fn current_password_must_be_valid(server: TestServer) {
 #[macros::test]
 async fn new_password_fields_must_match(server: TestServer) {
     let user = TestUser::stored(&server.db_pool).await;
-    let body = hashmap!(
-        "username" => user.username.as_str(),
-        "password" => user.password.as_str(),
-    );
-    server.post_login(&body).await;
+    user.login(&server).await;
 
     let new_password = Uuid::new_v4().to_string();
     let another_new_password = Uuid::new_v4().to_string();

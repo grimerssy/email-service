@@ -2,6 +2,7 @@ mod auth;
 pub mod configuration;
 mod domain;
 mod email_client;
+mod idempotency;
 mod routes;
 mod server;
 mod session;

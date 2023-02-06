@@ -9,6 +9,7 @@ use argon2::{
     Version,
 };
 use async_trait::async_trait;
+use hashmap_macro::hashmap;
 use reqwest::{header::LOCATION, Response, Url};
 use std::collections::HashMap;
 use test_server::TestServer;
@@ -29,6 +30,7 @@ trait ServerExt {
         -> Response;
     async fn post_subscriptions(&self, body: &HashMap<&str, &str>) -> Response;
     async fn get_subscriptions_confirm(&self) -> Response;
+    async fn get_admin_newsletters(&self) -> Response;
     async fn post_admin_newsletters(
         &self,
         body: &HashMap<&str, &str>,
@@ -122,6 +124,14 @@ impl ServerExt for TestServer {
     async fn get_subscriptions_confirm(&self) -> Response {
         self.http_client
             .post(self.subscriptions())
+            .send()
+            .await
+            .expect(FAILED_TO_EXECUTE_REQUEST)
+    }
+
+    async fn get_admin_newsletters(&self) -> Response {
+        self.http_client
+            .get(self.admin_newsletters())
             .send()
             .await
             .expect(FAILED_TO_EXECUTE_REQUEST)
@@ -247,6 +257,14 @@ impl TestUser {
         .execute(pool)
         .await
         .expect("Failed to store test user");
+    }
+
+    async fn login(&self, server: &TestServer) -> Response {
+        let body = hashmap!(
+            "username" => self.username.as_str(),
+            "password" => self.password.as_str(),
+        );
+        server.post_login(&body).await
     }
 }
 

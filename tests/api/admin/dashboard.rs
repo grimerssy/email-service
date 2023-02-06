@@ -1,4 +1,3 @@
-use hashmap_macro::hashmap;
 use test_server::TestServer;
 
 use crate::{ServerExt, TestUser};
@@ -12,11 +11,7 @@ async fn unauthenticated_users_are_redirected_to_login(server: TestServer) {
 #[macros::test]
 async fn logout_clears_session_state(server: TestServer) {
     let user = TestUser::stored(&server.db_pool).await;
-    let body = hashmap!(
-        "username" => user.username.as_str(),
-        "password" => user.password.as_str(),
-    );
-    let response = server.post_login(&body).await;
+    let response = user.login(&server).await;
     server.assert_is_redirect_to(&response, "/admin/dashboard");
 
     let html_page = server.get_admin_dashboard().await.text().await.unwrap();
