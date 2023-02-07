@@ -1,5 +1,61 @@
 {
   "db": "PostgreSQL",
+  "1439ab2e1e9703f1222cbe0e0b09563dcdf727bc3109b6186ad6d45691c0f1a2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "newsletter_issue_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "subscriber_email",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        select newsletter_issue_id, subscriber_email\n        from issue_delivery_queue\n        for update\n        skip locked\n        limit 1;\n        "
+  },
+  "2688eebb449afc7e8021c8e32457f97356c423c0923004b19443f9806d49dfc7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "title",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "text_content",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "html_content",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        select title, text_content, html_content\n        from newsletter_issues\n        where newsletter_issue_id = $1;\n        "
+  },
   "2e696f5bbc81c3c474a6747c363e82cbb02483e83e3641fd799fa18f7792af7c": {
     "describe": {
       "columns": [],
@@ -41,6 +97,19 @@
     },
     "query": "\n        insert into idempotency (\n            user_id,\n            idempotency_key,\n            created_at\n        )\n        values ($1, $2, now())\n        on conflict do nothing;\n        "
   },
+  "4362d51faa5dfb63f7574e7cbfce392b723356d291da632343ea4fd616499344": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        delete from issue_delivery_queue\n        where newsletter_issue_id = $1\n        and subscriber_email = $2;\n        "
+  },
   "4a668e0a72e2243acfe41b545654a5c8ffe6df6a4855884b2d41d1578a9435cd": {
     "describe": {
       "columns": [],
@@ -53,23 +122,17 @@
     },
     "query": "\n        update subscriptions\n        set status = 'confirmed'\n        where id = $1;\n        "
   },
-  "53e0e1b16349f0a80603b978eab44e81c7f14639316cf5fd4dd370e8b5cd0699": {
+  "6224dfb7e95ed2b2fa8f4b20a875821cb9a3b262a3ad237cad57d2b9fb13de99": {
     "describe": {
-      "columns": [
-        {
-          "name": "email",
-          "ordinal": 0,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
-        "Left": []
+        "Left": [
+          "Uuid"
+        ]
       }
     },
-    "query": "\n        select email from subscriptions\n        where status = 'confirmed';\n        "
+    "query": "\n        insert into issue_delivery_queue(\n           newsletter_issue_id,\n           subscriber_email\n        )\n        select $1, email\n        from subscriptions\n        where status = 'confirmed';\n        "
   },
   "67bef6d2eef6ce7648e2b1d01dde54b690cd671f7875d5073f64eeb59e168b0b": {
     "describe": {
@@ -205,6 +268,21 @@
       }
     },
     "query": "\n        select\n          response_status_code as \"response_status_code!\",\n          response_headers as \"response_headers!: Vec<HeaderPair>\",\n          response_body as \"response_body!\"\n        from idempotency\n        where user_id = $1\n        and idempotency_key = $2;\n        "
+  },
+  "bc2dd328de84f475c9be5fc243f1fcc77c6e81c090d8632933244adf7d45f68f": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        insert into newsletter_issues (\n           newsletter_issue_id,\n           title,\n           text_content,\n           html_content,\n           published_at\n        )\n        values ($1, $2, $3, $4, now());\n        "
   },
   "ee17737b2dd100d747c2025ee5c63d22b4aa93894512c863d9921f7def5db20e": {
     "describe": {

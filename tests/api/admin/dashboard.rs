@@ -1,15 +1,16 @@
-use test_server::TestServer;
+use crate::{TestServer, TestUser};
+use zero2prod::DbPool;
 
-use crate::{ServerExt, TestUser};
-
-#[macros::test]
-async fn unauthenticated_users_are_redirected_to_login(server: TestServer) {
+#[sqlx::test]
+async fn unauthenticated_users_are_redirected_to_login(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let response = server.get_admin_dashboard().await;
     server.assert_is_redirect_to(&response, "/login");
 }
 
-#[macros::test]
-async fn logout_clears_session_state(server: TestServer) {
+#[sqlx::test]
+async fn logout_clears_session_state(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let user = TestUser::stored(&server.db_pool).await;
     let response = user.login(&server).await;
     server.assert_is_redirect_to(&response, "/admin/dashboard");

@@ -1,11 +1,11 @@
+use crate::{TestServer, TestUser};
 use hashmap_macro::hashmap;
-use test_server::TestServer;
 use uuid::Uuid;
+use zero2prod::DbPool;
 
-use crate::{ServerExt, TestUser};
-
-#[macros::test]
-async fn change_password_works(server: TestServer) {
+#[sqlx::test]
+async fn change_password_works(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let mut user = TestUser::stored(&server.db_pool).await;
     let response = user.login(&server).await;
     server.assert_is_redirect_to(&response, "/admin/dashboard");
@@ -35,14 +35,16 @@ async fn change_password_works(server: TestServer) {
     server.assert_is_redirect_to(&response, "/admin/dashboard");
 }
 
-#[macros::test]
-async fn unauthenticated_users_can_not_access_form(server: TestServer) {
+#[sqlx::test]
+async fn unauthenticated_users_can_not_access_form(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let response = server.get_admin_password().await;
     server.assert_is_redirect_to(&response, "/login");
 }
 
-#[macros::test]
-async fn unauthenticated_users_can_not_change_password(server: TestServer) {
+#[sqlx::test]
+async fn unauthenticated_users_can_not_change_password(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let password = Uuid::new_v4().to_string();
     let body = hashmap!(
         "current_password" => password.as_str(),
@@ -53,8 +55,9 @@ async fn unauthenticated_users_can_not_change_password(server: TestServer) {
     server.assert_is_redirect_to(&response, "/login");
 }
 
-#[macros::test]
-async fn current_password_must_be_valid(server: TestServer) {
+#[sqlx::test]
+async fn current_password_must_be_valid(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let user = TestUser::stored(&server.db_pool).await;
     user.login(&server).await;
 
@@ -74,8 +77,9 @@ async fn current_password_must_be_valid(server: TestServer) {
     )
 }
 
-#[macros::test]
-async fn new_password_fields_must_match(server: TestServer) {
+#[sqlx::test]
+async fn new_password_fields_must_match(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let user = TestUser::stored(&server.db_pool).await;
     user.login(&server).await;
 

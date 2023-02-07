@@ -1,18 +1,17 @@
-use std::{collections::HashMap, time::Duration};
-
-use crate::{
-    Endpoints, Links, ServerExt, TestServer, TestUser,
-    FAILED_TO_EXECUTE_REQUEST,
-};
+use crate::{Links, TestServer, TestUser, FAILED_TO_EXECUTE_REQUEST};
+use fake::{faker::lorem::en::Sentence, Fake};
 use hashmap_macro::hashmap;
+use std::{collections::HashMap, time::Duration};
 use uuid::Uuid;
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
 };
+use zero2prod::DbPool;
 
-#[macros::test]
-async fn newsletter_delivery_is_idempotent(server: TestServer) {
+#[sqlx::test]
+async fn newsletter_delivery_is_idempotent(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     create_confirmed_subscriber(&server).await;
     server
         .mock_email_server(ResponseTemplate::new(200), Some(1))
@@ -33,10 +32,12 @@ async fn newsletter_delivery_is_idempotent(server: TestServer) {
     assert!(html_page.contains(
         "<p><i>You have successfully published a newsletter.</i></p>"
     ));
+    server.dispatch_pending_emails().await;
 }
 
-#[macros::test]
-async fn concurrent_requests_are_handled(server: TestServer) {
+#[sqlx::test]
+async fn concurrent_requests_are_handled(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     create_confirmed_subscriber(&server).await;
     server
         .mock_email_server(
@@ -57,12 +58,12 @@ async fn concurrent_requests_are_handled(server: TestServer) {
         response1.text().await.unwrap(),
         response2.text().await.unwrap()
     );
+    server.dispatch_pending_emails().await;
 }
 
-#[macros::test]
-async fn newsletters_are_delievered_to_confirmed_subscribers(
-    server: TestServer,
-) {
+#[sqlx::test]
+async fn newsletters_are_delievered_to_confirmed_subscribers(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     create_confirmed_subscriber(&server).await;
     server
         .mock_email_server(ResponseTemplate::new(200), Some(1))
@@ -72,12 +73,14 @@ async fn newsletters_are_delievered_to_confirmed_subscribers(
     let idempotency_key = Uuid::new_v4().to_string();
     let response = server.post_admin_newsletters(&body(&idempotency_key)).await;
     server.assert_is_redirect_to(&response, "/admin/newsletters");
+    server.dispatch_pending_emails().await;
 }
 
-#[macros::test]
+#[sqlx::test]
 async fn newsletters_are_not_delievered_to_unconfirmed_subscribers(
-    server: TestServer,
+    pool: DbPool,
 ) {
+    let server = TestServer::run(pool).await;
     create_unconfirmed_subscriber(&server).await;
     server
         .mock_email_server(ResponseTemplate::new(200), Some(0))
@@ -89,8 +92,9 @@ async fn newsletters_are_not_delievered_to_unconfirmed_subscribers(
     server.assert_is_redirect_to(&response, "/admin/newsletters");
 }
 
-#[macros::test]
-async fn post_with_no_authorization_header_is_rejected(server: TestServer) {
+#[sqlx::test]
+async fn post_with_no_authorization_header_is_rejected(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let idempotency_key = Uuid::new_v4().to_string();
     let response = server
         .http_client
@@ -102,8 +106,9 @@ async fn post_with_no_authorization_header_is_rejected(server: TestServer) {
     assert_eq!(response.status().as_u16(), 303);
 }
 
-#[macros::test]
-async fn nonexistent_users_are_rejected(server: TestServer) {
+#[sqlx::test]
+async fn nonexistent_users_are_rejected(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let user = TestUser::new();
     user.login(&server).await;
     let idempotency_key = Uuid::new_v4().to_string();
@@ -111,15 +116,17 @@ async fn nonexistent_users_are_rejected(server: TestServer) {
     assert_eq!(response.status().as_u16(), 303);
 }
 
-#[macros::test]
-async fn unauthenticated_users_are_rejected(server: TestServer) {
+#[sqlx::test]
+async fn unauthenticated_users_are_rejected(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let idempotency_key = Uuid::new_v4().to_string();
     let response = server.post_admin_newsletters(&body(&idempotency_key)).await;
     assert_eq!(response.status().as_u16(), 303);
 }
 
-#[macros::test]
-async fn post_newsletters_returns_400_for_invalid_data(server: TestServer) {
+#[sqlx::test]
+async fn post_newsletters_returns_400_for_invalid_data(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let user = TestUser::stored(&server.db_pool).await;
     user.login(&server).await;
     let test_cases = vec![
@@ -143,6 +150,7 @@ async fn post_newsletters_returns_400_for_invalid_data(server: TestServer) {
 }
 
 async fn create_unconfirmed_subscriber(server: &TestServer) -> Links {
+    use fake::faker::internet::en::SafeEmail;
     let _mock_guard = Mock::given(path("/email"))
         .and(method("POST"))
         .respond_with(ResponseTemplate::new(200))
@@ -150,7 +158,9 @@ async fn create_unconfirmed_subscriber(server: &TestServer) -> Links {
         .expect(1)
         .mount_as_scoped(&server.email_server)
         .await;
-    let body = hashmap!["name" => "John Doe", "email" => "example@gmail.com"];
+    let name = Sentence(2..3).fake::<String>();
+    let email = SafeEmail().fake::<String>();
+    let body = hashmap!["name" => name.as_str(), "email" => email.as_str()];
     server
         .post_subscriptions(&body)
         .await
@@ -162,8 +172,7 @@ async fn create_unconfirmed_subscriber(server: &TestServer) -> Links {
         .received_requests()
         .await
         .unwrap()
-        .first()
-        .cloned()
+        .pop()
         .unwrap();
     server.extract_links(&email_request)
 }

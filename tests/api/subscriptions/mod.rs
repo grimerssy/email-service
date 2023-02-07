@@ -1,11 +1,13 @@
 mod confirm;
 
-use crate::{ServerExt, TestServer};
+use crate::TestServer;
 use hashmap_macro::hashmap;
 use wiremock::ResponseTemplate;
+use zero2prod::DbPool;
 
-#[macros::test]
-async fn post_returns_200_for_valid_data(server: TestServer) {
+#[sqlx::test]
+async fn post_returns_200_for_valid_data(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     server
         .mock_email_server(ResponseTemplate::new(200), None)
         .await;
@@ -14,8 +16,9 @@ async fn post_returns_200_for_valid_data(server: TestServer) {
     assert_eq!(response.status().as_u16(), 200);
 }
 
-#[macros::test]
-async fn post_persists_the_new_subscriber(server: TestServer) {
+#[sqlx::test]
+async fn post_persists_the_new_subscriber(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     server
         .mock_email_server(ResponseTemplate::new(200), None)
         .await;
@@ -34,8 +37,9 @@ async fn post_persists_the_new_subscriber(server: TestServer) {
     assert_eq!(saved.status, "pending_confirmation");
 }
 
-#[macros::test]
-async fn post_sends_an_email_for_valid_data(server: TestServer) {
+#[sqlx::test]
+async fn post_sends_an_email_for_valid_data(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     server
         .mock_email_server(ResponseTemplate::new(200), None)
         .await;
@@ -43,8 +47,9 @@ async fn post_sends_an_email_for_valid_data(server: TestServer) {
     server.post_subscriptions(&body).await;
 }
 
-#[macros::test]
-async fn post_sends_an_email_with_confirmation_link(server: TestServer) {
+#[sqlx::test]
+async fn post_sends_an_email_with_confirmation_link(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     server
         .mock_email_server(ResponseTemplate::new(200), None)
         .await;
@@ -63,8 +68,9 @@ async fn post_sends_an_email_with_confirmation_link(server: TestServer) {
     assert_eq!(links.text, links.html);
 }
 
-#[macros::test]
-async fn post_returns_400_when_data_is_missing(server: TestServer) {
+#[sqlx::test]
+async fn post_returns_400_when_data_is_missing(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let cases = vec![
         (hashmap!["name" => "John Doe"], "form is missing the email"),
         (
@@ -83,8 +89,9 @@ async fn post_returns_400_when_data_is_missing(server: TestServer) {
     }
 }
 
-#[macros::test]
-async fn post_returns_400_when_data_is_invalid(server: TestServer) {
+#[sqlx::test]
+async fn post_returns_400_when_data_is_invalid(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let cases = vec![
         (
             hashmap!["name" => "", "email" => "example@gmail.com"],

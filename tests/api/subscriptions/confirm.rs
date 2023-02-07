@@ -1,10 +1,11 @@
-use wiremock::ResponseTemplate;
-
-use crate::{ServerExt, TestServer};
+use crate::TestServer;
 use hashmap_macro::hashmap;
+use wiremock::ResponseTemplate;
+use zero2prod::DbPool;
 
-#[macros::test]
-async fn get_to_link_from_post_subscription_returns_200(server: TestServer) {
+#[sqlx::test]
+async fn get_to_link_from_post_subscription_returns_200(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     server
         .mock_email_server(ResponseTemplate::new(200), None)
         .await;
@@ -26,8 +27,9 @@ async fn get_to_link_from_post_subscription_returns_200(server: TestServer) {
     assert_eq!(response.status().as_u16(), 200);
 }
 
-#[macros::test]
-async fn get_confirms_a_subscriber(server: TestServer) {
+#[sqlx::test]
+async fn get_confirms_a_subscriber(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     server
         .mock_email_server(ResponseTemplate::new(200), None)
         .await;
@@ -54,8 +56,9 @@ async fn get_confirms_a_subscriber(server: TestServer) {
     assert_eq!(saved.status, "confirmed");
 }
 
-#[macros::test]
-async fn get_returns_400_if_confirmation_token_is_absent(server: TestServer) {
+#[sqlx::test]
+async fn get_returns_400_if_confirmation_token_is_absent(pool: DbPool) {
+    let server = TestServer::run(pool).await;
     let response = server.get_subscriptions_confirm().await;
     assert_eq!(response.status().as_u16(), 400);
 }

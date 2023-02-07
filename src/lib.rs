@@ -3,6 +3,7 @@ pub mod configuration;
 mod domain;
 mod email_client;
 mod idempotency;
+pub mod issue_delivery;
 mod routes;
 mod server;
 mod session;
