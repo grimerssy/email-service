@@ -1,7 +1,7 @@
 use crate::{
     auth::UserId,
     domain::SubscriberEmail,
-    idempotency::{get_saved_response, store_response, IdempotencyKey},
+    idempotency::{store_response, try_process, IdempotencyKey, NextAction},
     utils::{e400, e500, see_other},
     DbPool, EmailClient,
 };
@@ -58,14 +58,16 @@ pub async fn publish_newsletter(
     } = form.0;
     let idempotency_key: IdempotencyKey =
         idempotency_key.try_into().map_err(e400)?;
-    if let Some(response) =
-        get_saved_response(&user_id, &idempotency_key, &pool)
-            .await
-            .map_err(e500)?
-    {
-        send_success_message();
-        return Ok(response);
-    }
+    let asdf = try_process(&user_id, &idempotency_key, &pool)
+        .await
+        .map_err(e500)?;
+    let transaction = match asdf {
+        NextAction::StartProcessing(t) => t,
+        NextAction::ReturnSavedResponse(response) => {
+            send_success_message();
+            return Ok(response);
+        }
+    };
     let user_id = *user_id.into_inner();
     tracing::Span::current()
         .record("user_id", &tracing::field::display(&user_id));
@@ -92,9 +94,10 @@ pub async fn publish_newsletter(
     }
     send_success_message();
     let response = see_other("/admin/newsletters");
-    let response = store_response(&user_id, &idempotency_key, response, &pool)
-        .await
-        .map_err(e500)?;
+    let response =
+        store_response(&user_id, &idempotency_key, response, transaction)
+            .await
+            .map_err(e500)?;
     Ok(response)
 }
 

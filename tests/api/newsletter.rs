@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 use crate::{
     Endpoints, Links, ServerExt, TestServer, TestUser,
@@ -33,6 +33,30 @@ async fn newsletter_delivery_is_idempotent(server: TestServer) {
     assert!(html_page.contains(
         "<p><i>You have successfully published a newsletter.</i></p>"
     ));
+}
+
+#[macros::test]
+async fn concurrent_requests_are_handled(server: TestServer) {
+    create_confirmed_subscriber(&server).await;
+    server
+        .mock_email_server(
+            ResponseTemplate::new(200).set_delay(Duration::from_millis(500)),
+            Some(1),
+        )
+        .await;
+    let user = TestUser::stored(&server.db_pool).await;
+    user.login(&server).await;
+    let idempotency_key = Uuid::new_v4().to_string();
+    let b = body(&idempotency_key);
+    let response1 = server.post_admin_newsletters(&b);
+    let response2 = server.post_admin_newsletters(&b);
+    let (response1, response2) = tokio::join!(response1, response2);
+    assert_eq!(response1.status().as_u16(), 303);
+    assert_eq!(response1.status(), response2.status());
+    assert_eq!(
+        response1.text().await.unwrap(),
+        response2.text().await.unwrap()
+    );
 }
 
 #[macros::test]

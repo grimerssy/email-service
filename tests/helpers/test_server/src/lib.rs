@@ -1,7 +1,6 @@
 use dotenvy::dotenv;
 use once_cell::sync::Lazy;
 use reqwest::{redirect::Policy, Client, Url};
-use std::time::Duration;
 use wiremock::MockServer;
 pub use zero2prod::DbPool;
 use zero2prod::{configuration::Config, telemetry, Server};
@@ -36,7 +35,6 @@ impl TestServer {
             c.application.port = 0;
             c.database.options.database =
                 db_pool.connect_options().get_database().unwrap().into();
-            c.email_client.timeout = Duration::from_millis(200);
             c.email_client.base_url = Url::parse(&email_server.uri()).unwrap();
             c
         };
